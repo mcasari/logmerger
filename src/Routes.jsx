@@ -2,9 +2,8 @@ import React from "react";
 import { BrowserRouter, Routes as RouterRoutes, Route } from "react-router-dom";
 import ScrollToTop from "components/ScrollToTop";
 import ErrorBoundary from "components/ErrorBoundary";
-// Simplified imports - only core features
-import FileUploadDashboard from "pages/file-upload-dashboard";
-import SimpleLogViewer from "pages/simple-log-viewer";
+// Simplified imports for core functionality only
+import LogMerger from "pages/log-merger";
 import NotFound from "pages/NotFound";
 
 const Routes = () => {
@@ -13,10 +12,9 @@ const Routes = () => {
       <ErrorBoundary>
       <ScrollToTop />
       <RouterRoutes>
-        {/* Simplified routes - core features only */}
-        <Route path="/" element={<FileUploadDashboard />} />
-        <Route path="/file-upload-dashboard" element={<FileUploadDashboard />} />
-        <Route path="/log-viewer" element={<SimpleLogViewer />} />
+        {/* Simplified routing - single main page */}
+        <Route path="/" element={<LogMerger />} />
+        <Route path="/log-merger" element={<LogMerger />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>

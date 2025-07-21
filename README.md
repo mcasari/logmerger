@@ -1,416 +1,214 @@
-# LogMerger Pro
+# LogMerger - Simplified Log Analysis Tool
 
-A powerful web application for intelligent log file analysis, pattern matching, and content grouping. LogMerger Pro helps you upload multiple log files, configure custom regex patterns, and view organized content groups for efficient log analysis.
+A streamlined web application for efficient log file analysis and pattern-based grouping. LogMerger allows you to upload multiple log files simultaneously, treat them as a single logical dataset, and organize content using configurable patterns with advanced pagination support.
 
-## 🚀 Features
+## 🚀 Key Features
 
-- **Multi-File Upload**: Upload multiple log files simultaneously with drag-and-drop support
-- **Regex Pattern Configuration**: Create and test custom regular expressions for intelligent content grouping
-- **Real-time Processing**: Monitor file processing status with live progress tracking
-- **Content Grouping**: Automatically group log entries based on configured patterns
-- **Advanced Search & Filtering**: Search through grouped content with powerful filters
-- **Export Capabilities**: Export grouped content in multiple formats (JSON, CSV, TXT)
+- **Multi-File Upload**: Upload one or more log files at once with drag-and-drop support
+- **Unified Log Processing**: Treat multiple files as a single logical file for analysis
+- **Pattern-Based Grouping**: Configure custom regex patterns to automatically group log entries
+- **Collapsible Groups**: Expand/collapse content groups for better organization
+- **Advanced Search**: Search across merged log lines with real-time highlighting
+- **Configurable Pagination**: Display all entries with customizable items per page (10, 25, 50, 100, 200)
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
-- **Pattern Library**: Access pre-built regex patterns for common log formats
+- **Export Capabilities**: Export grouped results in JSON format
 
-## 📋 Prerequisites
+## 📋 Current Application State
 
+### Implemented Features
+
+**File Upload & Processing**:
+- ✅ Multi-file drag-and-drop upload zone
+- ✅ File validation and error handling
+- ✅ Real-time processing status
+- ✅ File management (add/remove files)
+
+**Log Merging & Analysis**:
+- ✅ Merge multiple log files into single logical view
+- ✅ Automatic timestamp extraction and chronological sorting
+- ✅ Pattern-based content grouping with configurable regex
+- ✅ Three grouping modes: Log Level, Hour-based, Custom Pattern
+
+**Content Viewing**:
+- ✅ Collapsible group interface
+- ✅ Group-specific pagination with configurable items per page
+- ✅ Search functionality with text highlighting
+- ✅ File source tracking for each log entry
+- ✅ Color-coded group identification
+
+**User Interface**:
+- ✅ Clean, responsive three-column layout
+- ✅ Real-time statistics dashboard
+- ✅ Quick action toolbar
+- ✅ Mobile-optimized group viewer
+
+### Pagination Implementation
+
+The application features sophisticated pagination controls:
+- **Configurable Items Per Page**: Choose from 10, 25, 50, 100, or 200 entries per page
+- **Group-Specific Pagination**: Each content group maintains its own pagination state
+- **Smart Page Navigation**: Intelligent page number display with ellipsis for large datasets
+- **Entry Range Display**: Shows current viewing range (e.g., "Showing 1-50 of 1,247 entries")
+- **Keyboard Navigation**: Previous/Next buttons for easy navigation
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
 - Node.js (version 18.0 or higher)
 - npm or yarn package manager
-- Modern web browser (Chrome, Firefox, Safari, Edge)
+- Modern web browser
 
-## 🛠️ Installation
+### Installation Steps
 
-1. **Clone the repository**
+1. **Clone and Install**:
    ```bash
    git clone <repository-url>
-   cd logmerger_pro
-   ```
-
-2. **Install dependencies**
-   ```bash
+   cd logmerger
    npm install
    ```
 
-3. **Start the development server**
+2. **Start Development Server**:
    ```bash
-   npm start
+   npm run dev
    ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:3000` to access the application
+3. **Access Application**:
+   Navigate to `http://localhost:5173`
 
 ## 🎯 Quick Start Guide
 
 ### Step 1: Upload Log Files
+1. Navigate to the **LogMerger** page
+2. Use the drag-and-drop zone or file browser to upload one or more log files
+3. Supported formats: `.log`, `.txt` files
+4. View uploaded files in the file list with size and status information
 
-1. Navigate to the **File Upload Dashboard** (home page)
-2. **Upload files** using one of these methods:
-   - Drag and drop files into the upload zone
-   - Click "Choose Files" to browse and select files
-   - Use the "Upload Multiple Files" button for batch uploads
+### Step 2: Configure Grouping Patterns
+1. **Built-in Patterns**:
+   - **Log Level**: Groups by ERROR, WARN, INFO, DEBUG levels
+   - **Hour-based**: Groups entries by hour timestamps
+   - **Custom Pattern**: Define your own regex pattern
 
-3. **Supported file formats**:
-   - `.log` files
-   - `.txt` files
-   - Maximum file size: 100MB per file
+2. **Pattern Examples**:
+   - Error logs: `\[ERROR\]|ERROR:|Exception`
+   - Database queries: `SELECT|INSERT|UPDATE|DELETE`
+   - User activities: `login|logout|authentication`
 
-### Step 2: Configure Regex Patterns
+### Step 3: Process and View Results
+1. Click "Process Files" to merge and analyze log content
+2. View real-time statistics: files, total lines, filtered lines, groups
+3. Use search to filter across all merged content
+4. Expand/collapse groups as needed for focused analysis
 
-1. **Basic Pattern Configuration**:
-   - Enter your regex pattern in the "Regex Pattern" field
-   - The pattern will be validated in real-time
-   - Example patterns:
-     - Error logs: `\[ERROR\]|ERROR:|Exception`
-     - Warning logs: `\[WARN\]|WARNING:|WARN:`
-     - Info logs: `\[INFO\]|INFO:|Information`
+### Step 4: Navigate with Pagination
+1. **Set Items Per Page**: Choose your preferred page size from the dropdown
+2. **Navigate Pages**: Use Previous/Next buttons or click specific page numbers
+3. **View Entry Ranges**: See exactly which entries are currently displayed
+4. **Group-Specific Navigation**: Each group maintains independent pagination
 
-2. **Advanced Pattern Configuration**:
-   - Click "Advanced Settings" to access the **Regex Pattern Configuration** page
-   - Use the **Pattern Editor** for complex regex creation
-   - Test patterns with the **Pattern Tester**
-   - Save frequently used patterns with **Saved Patterns Manager**
-   - Browse **Pattern Library** for common log formats
+### Step 5: Export Results
+1. Click "Export Results" to download grouped content
+2. Exports include group information, entry counts, and full log data
+3. JSON format with structured group and entry data
 
-### Step 3: Process Files
+## 📚 Technical Architecture
 
-1. **Start Processing**:
-   - Click "Process Files" button on the dashboard
-   - Ensure you have valid regex patterns configured
-   - Monitor progress in real-time
+### Component Structure
+```
+src/pages/log-merger/
+├── index.jsx                 # Main LogMerger page component
+├── components/
+│   ├── FileUploadZone.jsx    # File upload and management
+│   ├── PatternConfiguration.jsx # Regex pattern configuration
+│   └── LogViewer.jsx         # Log content display with pagination
+```
 
-2. **Processing Status**:
-   - Navigate to **File Processing Status** page
-   - View individual file processing progress
-   - Monitor system resources and activity logs
-   - Handle any processing errors
+### Key Technologies
+- **React 18+**: Functional components with hooks
+- **Vite**: Development server and build tool
+- **Tailwind CSS**: Styling and responsive design
+- **Lucide React**: Icon library
+- **Local Storage**: File metadata persistence
 
-### Step 4: View Grouped Content
-
-1. **Access Grouped Content**:
-   - Navigate to **Grouped Content Viewer** after processing
-   - Browse groups created by your regex patterns
-   - View individual log entries within each group
-
-2. **Content Navigation**:
-   - Use the sidebar to navigate between groups
-   - Filter content by date, source file, or log level
-   - Search within groups using the search functionality
-
-### Step 5: Analyze and Export
-
-1. **Log Analysis Workspace**:
-   - Access advanced analysis tools
-   - Search across all grouped content
-   - Apply filters for specific time ranges or sources
-   - View content in different formats (list, table, detailed)
-
-2. **Export Options**:
-   - Export individual groups or selected entries
-   - Choose from multiple formats: JSON, CSV, TXT
-   - Configure export settings (date range, fields, etc.)
-
-## 📚 Detailed Usage Instructions
-
-### File Upload Dashboard
-
-The main dashboard provides several key functions:
-
-**Upload Zone Features**:
-- Drag and drop multiple files simultaneously
-- Real-time file validation
-- Progress tracking for each file
-- Error handling for unsupported formats
-
-**File Management**:
-- View uploaded files list with details (name, size, type, upload time)
-- Remove individual files or clear all files
-- View file processing status
-
-**Quick Stats**:
-- Total files uploaded
-- Combined file size
-- Pattern configuration status
-- Files ready for processing
-
-### Regex Pattern Configuration
-
-**Pattern Editor**:
-- Syntax highlighting for regex patterns
-- Real-time pattern validation
-- Error messages for invalid patterns
-- Pattern flags configuration (global, multiline, etc.)
-
-**Pattern Library**:
-- Pre-built patterns for common log formats:
-  - Apache/Nginx access logs
-  - Application error logs
-  - System event logs
-  - Database logs
-  - Security logs
-
-**Pattern Tester**:
-- Test patterns against sample log content
-- View match results in real-time
-- Validate pattern effectiveness before processing
-
-**Saved Patterns Manager**:
-- Save frequently used patterns
-- Organize patterns by category
-- Load saved patterns for reuse
-- Export/import pattern collections
-
-### File Processing Status
-
-**Processing Overview**:
-- Overall processing progress
-- Estimated time remaining
-- Current operation status
-- Total files processed vs. remaining
-
-**Individual File Status**:
-- Processing stages: Upload → Parse → Analyze → Group
-- Progress percentage for each file
-- Processing time and performance metrics
-- Error details for failed files
-
-**System Monitoring**:
-- Memory usage tracking
-- CPU utilization
-- Processing queue status
-- System resource optimization
-
-**Activity Log**:
-- Real-time processing events
-- Error messages and warnings
-- Performance metrics
-- System notifications
-
-### Grouped Content Viewer
-
-**Group Navigation**:
-- Sidebar with all created groups
-- Group statistics (entry count, last match time)
-- Group type indicators (error, warning, info, debug)
-- Search and filter groups
-
-**Content Display**:
-- Tabular view of grouped entries
-- Sortable columns (timestamp, source, level, content)
-- Expandable entries for full content view
-- Bulk selection for mass operations
-
-**Export Options**:
-- Export entire groups or selected entries
-- Multiple format support (JSON, CSV, TXT)
-- Custom field selection
-- Date range filtering
-
-### Log Analysis Workspace
-
-**Advanced Search**:
-- Full-text search across all grouped content
-- Regular expression search support
-- Search within specific groups
-- Search history and saved searches
-
-**Filtering Options**:
-- Date range filtering
-- Source file filtering
-- Log level filtering
-- Custom metadata filtering
-
-**View Modes**:
-- List view for quick browsing
-- Table view for structured data
-- Detailed view for comprehensive analysis
-- Timeline view for chronological analysis
+### Data Flow
+1. Files uploaded → FileUploadZone
+2. Content parsed → LogMerger state
+3. Patterns applied → Content grouping
+4. Groups rendered → LogViewer with pagination
+5. User interactions → State updates and re-rendering
 
 ## 🔧 Configuration Options
 
-### Environment Variables
+### Pattern Configuration
+- **Log Level Matching**: Built-in patterns for common log levels
+- **Custom Regex**: Define complex patterns for specific log formats
+- **Pattern Testing**: Real-time pattern validation with sample content
+- **Multiple Patterns**: Support for various log formats simultaneously
 
-Create a `.env` file in the root directory:
-
-```env
-# Server Configuration
-PORT=3000
-HOST=localhost
-
-# File Upload Configuration
-MAX_FILE_SIZE=104857600  # 100MB in bytes
-ALLOWED_EXTENSIONS=.log,.txt
-
-# Processing Configuration
-MAX_CONCURRENT_PROCESSES=4
-PROCESSING_TIMEOUT=300000  # 5 minutes in milliseconds
-
-# Export Configuration
-EXPORT_FORMATS=json,csv,txt
-MAX_EXPORT_SIZE=1000000  # 1MB in bytes
-```
-
-### Customization Options
-
-**Theme Configuration**:
-- Light/dark mode support
-- Custom color schemes
-- Font size adjustments
-- Layout preferences
-
-**Performance Settings**:
-- Chunk size for large files
-- Concurrent processing limits
-- Memory usage optimization
-- Cache configuration
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-**File Upload Problems**:
-- **Issue**: Files not uploading
-- **Solution**: Check file size (max 100MB) and format (.log, .txt only)
-- **Solution**: Ensure stable internet connection
-- **Solution**: Clear browser cache and cookies
-
-**Pattern Configuration Issues**:
-- **Issue**: Regex pattern not matching expected content
-- **Solution**: Use the Pattern Tester to validate patterns
-- **Solution**: Check regex syntax and escape special characters
-- **Solution**: Test with sample log content first
-
-**Processing Errors**:
-- **Issue**: Files failing to process
-- **Solution**: Check file format and encoding (UTF-8 recommended)
-- **Solution**: Verify regex patterns are valid
-- **Solution**: Retry processing with smaller file chunks
-
-**Performance Issues**:
-- **Issue**: Slow processing or browser freezing
-- **Solution**: Process files in smaller batches
-- **Solution**: Close unnecessary browser tabs
-- **Solution**: Use a more powerful device for large files
-
-**Export Problems**:
-- **Issue**: Export failing or incomplete
-- **Solution**: Select smaller data ranges
-- **Solution**: Choose appropriate export format
-- **Solution**: Check available disk space
-
-### Browser Compatibility
-
-**Supported Browsers**:
-- Chrome 90+
-- Firefox 85+
-- Safari 14+
-- Edge 90+
-
-**Required Features**:
-- JavaScript enabled
-- Local storage support
-- File API support
-- WebSocket support (for real-time updates)
-
-## 🎨 User Interface Guide
-
-### Navigation
-
-**Header Navigation**:
-- Logo/Home link
-- Main navigation menu
-- User profile (if authentication enabled)
-- Settings and preferences
-
-**Workflow Progress**:
-- Visual progress indicator
-- Current step highlighting
-- Navigation between workflow steps
-- Completion status tracking
-
-**Quick Action Toolbar**:
-- Frequently used actions
-- Keyboard shortcuts
-- Context-sensitive options
-- Help and documentation links
-
-### Mobile Experience
-
-**Responsive Design**:
-- Optimized for mobile devices
-- Touch-friendly interface
-- Collapsible navigation
-- Swipe gestures support
-
-**Mobile-Specific Features**:
-- Bottom navigation bar
-- Drawer-style menus
-- Thumb-friendly button sizes
-- Optimized file upload interface
-
-## 📊 Best Practices
-
-### File Organization
-
-1. **Use descriptive filenames** that indicate content type and date
-2. **Group related files** by application or system
-3. **Maintain consistent naming conventions**
-4. **Include timestamps** in filenames when possible
-
-### Pattern Creation
-
-1. **Start with simple patterns** and gradually add complexity
-2. **Test patterns thoroughly** before processing large files
-3. **Use the Pattern Library** for common log formats
-4. **Save successful patterns** for future use
-5. **Document pattern purposes** with clear names and descriptions
+### Pagination Settings
+- **Items Per Page**: 10, 25, 50, 100, 200 options
+- **Auto-Reset**: Pagination resets when search query changes
+- **Memory Efficient**: Only renders visible entries to handle large datasets
+- **Smooth Navigation**: Intelligent page number display for large page counts
 
 ### Performance Optimization
+- **Incremental Processing**: Files processed sequentially to prevent browser freezing
+- **Virtual Scrolling**: Efficient rendering of large log datasets
+- **Search Optimization**: Debounced search to prevent excessive filtering
+- **Memory Management**: Automatic cleanup of processed file references
 
-1. **Process files in batches** rather than all at once
-2. **Use specific patterns** instead of overly broad ones
-3. **Monitor system resources** during processing
-4. **Close unnecessary applications** while processing large files
-5. **Use appropriate file sizes** for your system capabilities
+## 🎨 User Interface Features
 
-## 🔐 Security Considerations
+### Responsive Design
+- **Desktop**: Three-column layout with full feature access
+- **Tablet**: Collapsible sidebars with touch-friendly controls
+- **Mobile**: Stacked layout optimized for touch interaction
 
-- **Local Processing**: All file processing happens locally in your browser
-- **No Server Upload**: Files are not uploaded to external servers
-- **Privacy Protection**: Log content remains on your device
-- **Secure Patterns**: Regex patterns are validated to prevent injection attacks
+### Visual Indicators
+- **Group Colors**: Color-coded groups based on content type
+- **Processing States**: Real-time visual feedback during file processing
+- **Search Highlighting**: Matched text highlighted in search results
+- **Status Badges**: File processing status and group entry counts
 
-## 🤝 Support and Contributing
+### Accessibility
+- **Keyboard Navigation**: Full keyboard support for all interactions
+- **Screen Reader Support**: Proper ARIA labels and semantic markup
+- **High Contrast**: Clear visual hierarchy and readable text
+- **Focus Management**: Logical tab order and focus indicators
 
-### Getting Help
+## 🚨 Current Limitations
 
-- Check the troubleshooting section above
-- Review the detailed usage instructions
-- Search for similar issues in the documentation
-- Contact support through the application's help menu
+### Known Constraints
+- **Browser-Based Processing**: All processing happens locally in the browser
+- **Memory Limitations**: Large files may impact browser performance
+- **File Size Limits**: Recommended maximum of 100MB per file
+- **Pattern Complexity**: Very complex regex patterns may slow processing
 
-### Feature Requests
+### Recommended Usage
+- **File Sizes**: Best performance with files under 50MB
+- **Batch Processing**: Process files in smaller groups for optimal performance
+- **Pattern Testing**: Always test custom patterns with sample data first
+- **Browser Requirements**: Modern browsers with JavaScript enabled
 
-- Submit feature requests through the application
-- Provide detailed use cases and examples
-- Include mockups or descriptions of desired functionality
+## 🔄 Recent Updates (v1.0.0)
 
-## 📄 License
+### Core Features
+- ✅ **Multi-file upload system** with drag-and-drop support
+- ✅ **Unified log processing** treating multiple files as single dataset
+- ✅ **Pattern-based grouping** with configurable regex patterns
+- ✅ **Advanced pagination system** with customizable items per page
+- ✅ **Search functionality** with real-time text highlighting
+- ✅ **Collapsible group interface** for organized content viewing
+- ✅ **Export capabilities** for processed log data
 
-This project is licensed under the MIT License. See the LICENSE file for details.
-
-## 🔄 Updates and Changelog
-
-### Version 0.1.0
-- Initial release
-- Core file upload and processing functionality
-- Regex pattern configuration
-- Basic content grouping and viewing
-- Export capabilities
-- Responsive design implementation
+### User Experience
+- ✅ **Responsive design** optimized for all device sizes
+- ✅ **Real-time statistics** showing processing progress
+- ✅ **Visual feedback** throughout the workflow
+- ✅ **Intuitive navigation** with clear action buttons
 
 ---
 
-**Happy Log Analysis!** 🎉
+**Start analyzing your logs today!** 🎉
 
-For technical support or questions, please refer to the help documentation within the application or contact the development team.
+Upload your log files, configure your patterns, and discover insights in your data with powerful pagination and search capabilities.
