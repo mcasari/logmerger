@@ -1,5 +1,6 @@
 # LogMerger - Simplified Log Analysis Tool
 
+
 A streamlined web application for efficient log file analysis and pattern-based grouping. LogMerger allows you to upload multiple log files simultaneously, treat them as a single logical dataset, and organize content using configurable patterns with advanced pagination support.
 
 ## 🚀 Key Features
