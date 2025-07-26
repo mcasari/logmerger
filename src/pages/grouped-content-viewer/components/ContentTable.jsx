@@ -94,14 +94,28 @@ const ContentTable = ({
     return colors[hash % colors.length];
   };
 
+  const getOriginalTimestamp = (timestamp) => {
+    // Preserve original timestamp exactly as it appears in source files
+    if (typeof timestamp === 'string') {
+      return timestamp;
+    }
+    // If it's a Date object, return the original string representation
+    return timestamp.toString();
+  };
+
   const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString('en-US', {
-      month: 'short',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    // Parse timestamp to preserve original timezone if it's a string
+    const date = typeof timestamp === 'string' ? new Date(timestamp) : timestamp;
+    
+    // Format timestamp to preserve original time without timezone conversion
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    
+    return `${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   const EntryRow = useCallback(({ index, style }) => {
@@ -134,7 +148,7 @@ const ContentTable = ({
           
           {/* Timestamp */}
           <div className="w-32 text-sm text-text-secondary font-mono">
-            {formatTimestamp(entry.timestamp)}
+            {getOriginalTimestamp(entry.timestamp)}
           </div>
           
           {/* Source File */}
@@ -185,7 +199,9 @@ const ContentTable = ({
                 </div>
                 <div>
                   <span className="font-medium text-text-secondary">Timestamp:</span>
-                  <span className="ml-2 text-text-primary font-mono">{new Date(entry.timestamp).toISOString()}</span>
+                  <span className="ml-2 text-text-primary font-mono">
+                    {getOriginalTimestamp(entry.timestamp)}
+                  </span>
                 </div>
                 <div>
                   <span className="font-medium text-text-secondary">Level:</span>

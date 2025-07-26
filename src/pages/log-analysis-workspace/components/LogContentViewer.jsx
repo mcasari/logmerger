@@ -86,6 +86,17 @@ const LogContentViewer = ({
     const isSelected = selectedEntries.includes(entry.id);
     const isEven = index % 2 === 0;
 
+    // Preserve original timestamp exactly as it appears in the source file
+    const getOriginalTimestamp = (timestamp) => {
+      // If timestamp is already a string, return it as-is
+      if (typeof timestamp === 'string') {
+        return timestamp;
+      }
+      // If it's a Date object, convert back to original string format
+      // This should ideally preserve the original format from the log file
+      return timestamp.toString();
+    };
+
     return (
       <div 
         style={style}
@@ -142,7 +153,7 @@ const LogContentViewer = ({
         {/* Timestamp */}
         <div className="flex-shrink-0 w-32">
           <span className="text-xs text-text-muted font-mono">
-            {new Date(entry.timestamp).toLocaleTimeString()}
+            {getOriginalTimestamp(entry.timestamp)}
           </span>
         </div>
 

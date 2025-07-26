@@ -44,15 +44,29 @@ const SimpleLogViewer = () => {
         'Background task executed'
       ];
       
+      // Keep original timestamp format as it would appear in actual log files
+      const originalTimestampFormat = (date) => {
+        const year = date.getUTCFullYear();
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const hours = String(date.getUTCHours()).padStart(2, '0');
+        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+        const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      };
+      
+      // Store the original timestamp string format
+      const originalTimestamp = originalTimestampFormat(timestamp);
+      
       return {
         id: `log-${i}`,
         line: i + 1,
-        timestamp: timestamp,
+        timestamp: originalTimestamp, // Keep as original string format
         level: level,
-        message: `[${level}] ${timestamp.toISOString()} - ${messages[Math.floor(Math.random() * messages.length)]} (${selectedFile.name}:${i + 1})`,
+        message: `[${level}] ${originalTimestamp} - ${messages[Math.floor(Math.random() * messages.length)]} (${selectedFile.name}:${i + 1})`,
         source: selectedFile.name
       };
-    }).sort((a, b) => a.timestamp - b.timestamp);
+    }).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
     setLogContent(mockEntries);
   }, [selectedFile]);
@@ -229,7 +243,9 @@ const SimpleLogViewer = () => {
                                 {entry.message}
                               </div>
                               <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
-                                <span>{entry.timestamp.toLocaleString()}</span>
+                                <span>
+                                  {entry.timestamp}
+                                </span>
                                 <span>•</span>
                                 <span
                                   className={`

@@ -57,8 +57,9 @@ const LogMerger = () => {
           fileName: file.name,
           lineNumber: index + 1,
           content: line,
-          timestamp: extractTimestamp(line) || new Date(Date.now() - Math.random() * 86400000),
-          originalIndex: index
+          timestamp: extractTimestamp(line), // Keep original timestamp string or null
+          originalIndex: index,
+          sortableTimestamp: extractTimestamp(line) ? new Date(extractTimestamp(line)) : new Date(0) // For sorting only
         }));
 
         allEntries.push(...fileEntries);
@@ -71,8 +72,25 @@ const LogMerger = () => {
         );
       }
 
-      // Sort all entries by timestamp
-      allEntries.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      // Sort entries by timestamp (use sortableTimestamp for proper chronological order)
+      allEntries.sort((a, b) => {
+        // If both have timestamps, sort chronologically
+        if (a.sortableTimestamp && b.sortableTimestamp && 
+            !isNaN(a.sortableTimestamp.getTime()) && !isNaN(b.sortableTimestamp.getTime())) {
+          return a.sortableTimestamp - b.sortableTimestamp;
+        }
+        // If only one has timestamp, prioritize it
+        if (a.sortableTimestamp && !isNaN(a.sortableTimestamp.getTime()) && 
+            (!b.sortableTimestamp || isNaN(b.sortableTimestamp.getTime()))) {
+          return -1;
+        }
+        if (b.sortableTimestamp && !isNaN(b.sortableTimestamp.getTime()) && 
+            (!a.sortableTimestamp || isNaN(a.sortableTimestamp.getTime()))) {
+          return 1;
+        }
+        // If neither has valid timestamp, maintain original order
+        return a.originalIndex - b.originalIndex;
+      });
       setLogEntries(allEntries);
 
     } catch (error) {
@@ -82,25 +100,26 @@ const LogMerger = () => {
     }
   }, [files]);
 
-  // Extract timestamp from log line (basic implementation)
+  // Extract timestamp from log line (preserve original format)
   const extractTimestamp = (line) => {
-    // Try to extract common timestamp formats
+    // Try to extract common timestamp formats, return the original string
     const patterns = [
-      /(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2})/,
-      /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2})/,
-      /(\d{2}:\d{2}:\d{2})/
+      /(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})?)/,
+      /(\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}:\d{2}(?:\.\d{3})?)/,
+      /(\d{2}:\d{2}:\d{2}(?:\.\d{3})?)/,
+      /(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d{3})?)/,
+      /(\w{3} \d{1,2} \d{2}:\d{2}:\d{2})/,
+      /(\d{2}-\d{2}-\d{4} \d{2}:\d{2}:\d{2})/
     ];
 
     for (const pattern of patterns) {
       const match = line.match(pattern);
       if (match) {
-        const date = new Date(match[1]);
-        if (!isNaN(date.getTime())) {
-          return date;
-        }
+        // Return the original timestamp string exactly as it appears
+        return match[1];
       }
     }
-    return null;
+    return null; // Return null instead of generating random timestamps
   };
 
   // Group log entries based on the selected pattern
