@@ -10,11 +10,12 @@ const LogMerger = () => {
   const [files, setFiles] = useState([]);
   const [logEntries, setLogEntries] = useState([]);
   const [groupingPattern, setGroupingPattern] = useState('\\[(ERROR|WARN|INFO|DEBUG)\\]');
-  const [groupingType, setGroupingType] = useState('log-level'); // 'log-level', 'hour', 'custom'
+  const [groupingType, setGroupingType] = useState('chronological'); // 'chronological', 'log-level', 'hour', 'custom'
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+  const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
 
   // Handle file selection
   const handleFilesSelected = useCallback((selectedFiles) => {
@@ -72,26 +73,16 @@ const LogMerger = () => {
         );
       }
 
-      // Sort entries by timestamp (use sortableTimestamp for proper chronological order)
-      allEntries.sort((a, b) => {
-        // If both have timestamps, sort chronologically
-        if (a.sortableTimestamp && b.sortableTimestamp && 
-            !isNaN(a.sortableTimestamp.getTime()) && !isNaN(b.sortableTimestamp.getTime())) {
-          return a.sortableTimestamp - b.sortableTimestamp;
-        }
-        // If only one has timestamp, prioritize it
-        if (a.sortableTimestamp && !isNaN(a.sortableTimestamp.getTime()) && 
-            (!b.sortableTimestamp || isNaN(b.sortableTimestamp.getTime()))) {
-          return -1;
-        }
-        if (b.sortableTimestamp && !isNaN(b.sortableTimestamp.getTime()) && 
-            (!a.sortableTimestamp || isNaN(a.sortableTimestamp.getTime()))) {
-          return 1;
-        }
-        // If neither has valid timestamp, maintain original order
-        return a.originalIndex - b.originalIndex;
-      });
-      setLogEntries(allEntries);
+      // Filter out entries without valid timestamps and sort by timestamp
+      const validEntries = allEntries.filter(entry => 
+        entry.timestamp && entry.sortableTimestamp && !isNaN(entry.sortableTimestamp.getTime())
+      );
+      
+      const invalidEntries = allEntries.length - validEntries.length;
+      setEntriesWithoutTimestamp(invalidEntries);
+      
+      validEntries.sort((a, b) => a.sortableTimestamp - b.sortableTimestamp);
+      setLogEntries(validEntries);
 
     } catch (error) {
       console.error('Error processing files:', error);
@@ -125,6 +116,16 @@ const LogMerger = () => {
   // Group log entries based on the selected pattern
   const groupedEntries = useMemo(() => {
     if (logEntries.length === 0) return [];
+
+    // For chronological view, create a single group with all entries
+    if (groupingType === 'chronological') {
+      return [{
+        id: 'chronological',
+        name: 'Chronological Order',
+        entries: logEntries,
+        count: logEntries.length
+      }];
+    }
 
     const groups = new Map();
 
@@ -197,6 +198,7 @@ const LogMerger = () => {
     setLogEntries([]);
     setCollapsedGroups(new Set());
     setSearchQuery('');
+    setEntriesWithoutTimestamp(0);
   }, []);
 
   const totalEntries = logEntries.length;
@@ -217,10 +219,10 @@ const LogMerger = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-text-primary">
-                    LogMerger Pro - Simplified
+                    LogMerger - Chronological Log Analysis
                   </h1>
                   <p className="text-text-secondary">
-                    Upload, merge, and group log files with configurable patterns
+                    Upload, merge, and view log files in chronological order (entries with timestamps only)
                   </p>
                 </div>
               </div>
@@ -279,6 +281,18 @@ const LogMerger = () => {
                     </div>
                   </div>
                 </div>
+                
+                {entriesWithoutTimestamp > 0 && (
+                  <div className="bg-surface border border-border rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <Icon name="Clock" size={20} color="var(--color-error)" />
+                      <div>
+                        <div className="text-2xl font-bold text-text-primary">{entriesWithoutTimestamp.toLocaleString()}</div>
+                        <div className="text-sm text-text-secondary">No Timestamp</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

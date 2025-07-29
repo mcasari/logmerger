@@ -54,15 +54,8 @@ const LogViewer = ({
   const allEntries = useMemo(() => {
     const entries = [];
     groups.forEach((group) => {
-      if (!collapsedGroups.has(group.id)) {
-        // Add group header
-        entries.push({
-          type: 'group-header',
-          id: `group-${group.id}`,
-          group: group
-        });
-        
-        // Add all group entries
+      // For chronological view, don't show group headers
+      if (group.id === 'chronological') {
         group.entries.forEach((entry) => {
           entries.push({
             type: 'entry',
@@ -72,12 +65,31 @@ const LogViewer = ({
           });
         });
       } else {
-        // Add collapsed group header only
-        entries.push({
-          type: 'group-header',
-          id: `group-${group.id}`,
-          group: group
-        });
+        if (!collapsedGroups.has(group.id)) {
+          // Add group header
+          entries.push({
+            type: 'group-header',
+            id: `group-${group.id}`,
+            group: group
+          });
+          
+          // Add all group entries
+          group.entries.forEach((entry) => {
+            entries.push({
+              type: 'entry',
+              id: entry.id,
+              entry: entry,
+              group: group
+            });
+          });
+        } else {
+          // Add collapsed group header only
+          entries.push({
+            type: 'group-header',
+            id: `group-${group.id}`,
+            group: group
+          });
+        }
       }
     });
     return entries;
@@ -164,8 +176,8 @@ const LogViewer = ({
               </div>
               
               {/* Timestamp */}
-              <div className="flex-shrink-0 w-32">
-                <span className="text-xs text-text-muted font-mono">
+              <div className="flex-shrink-0 w-40">
+                <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
                   {getOriginalTimestamp(entry.timestamp)}
                 </span>
               </div>
@@ -191,9 +203,12 @@ const LogViewer = ({
       <div className="p-6 border-b border-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
-            <h3 className="text-lg font-semibold text-text-primary">Merged Log View</h3>
+            <h3 className="text-lg font-semibold text-text-primary">
+              {groups.length === 1 && groups[0].id === 'chronological' ? 'Chronological Log View' : 'Merged Log View'}
+            </h3>
             <p className="text-sm text-text-secondary">
-              {totalVisibleEntries.toLocaleString()} entries across {groups.length} groups
+              {totalVisibleEntries.toLocaleString()} entries
+              {groups.length === 1 && groups[0].id === 'chronological' ? ' with timestamps, sorted chronologically' : ` across ${groups.length} groups`}
             </p>
           </div>
           
@@ -207,27 +222,29 @@ const LogViewer = ({
               />
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              iconName={groups.some(g => collapsedGroups.has(g.id)) ? "Expand" : "Minimize"}
-              iconSize={16}
-              onClick={() => {
-                if (groups.some(g => collapsedGroups.has(g.id))) {
-                  // Expand all
-                  groups.forEach(g => {
-                    if (collapsedGroups.has(g.id)) {
-                      onGroupToggle(g.id);
-                    }
-                  });
-                } else {
-                  // Collapse all
-                  groups.forEach(g => onGroupToggle(g.id));
-                }
-              }}
-            >
-              {groups.some(g => collapsedGroups.has(g.id)) ? 'Expand All' : 'Collapse All'}
-            </Button>
+            {!(groups.length === 1 && groups[0].id === 'chronological') && (
+              <Button
+                variant="outline"
+                size="sm"
+                iconName={groups.some(g => collapsedGroups.has(g.id)) ? "Expand" : "Minimize"}
+                iconSize={16}
+                onClick={() => {
+                  if (groups.some(g => collapsedGroups.has(g.id))) {
+                    // Expand all
+                    groups.forEach(g => {
+                      if (collapsedGroups.has(g.id)) {
+                        onGroupToggle(g.id);
+                      }
+                    });
+                  } else {
+                    // Collapse all
+                    groups.forEach(g => onGroupToggle(g.id));
+                  }
+                }}
+              >
+                {groups.some(g => collapsedGroups.has(g.id)) ? 'Expand All' : 'Collapse All'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -247,9 +264,14 @@ const LogViewer = ({
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <Icon name="Search" size={48} color="var(--color-text-muted)" className="mx-auto mb-4" />
-              <h4 className="text-lg font-medium text-text-primary mb-2">No groups found</h4>
+              <h4 className="text-lg font-medium text-text-primary mb-2">
+                {groups.length === 1 && groups[0].id === 'chronological' ? 'No log entries found' : 'No groups found'}
+              </h4>
               <p className="text-text-secondary">
-                Upload and process log files to see grouped content here
+                {groups.length === 1 && groups[0].id === 'chronological' 
+                  ? 'Upload and process log files to see chronological log entries here'
+                  : 'Upload and process log files to see grouped content here'
+                }
               </p>
             </div>
           </div>
