@@ -50,6 +50,53 @@ const LogViewer = ({
     return String(timestamp);
   };
 
+  const getLogLevelColor = (content) => {
+    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
+    if (!levelMatch) return null;
+    
+    const level = levelMatch[1].toUpperCase();
+    switch (level) {
+      case 'ERROR':
+        return 'bg-error-100 text-error-800 border-error-200';
+      case 'WARN':
+        return 'bg-warning-100 text-warning-800 border-warning-200';
+      case 'INFO':
+        return 'bg-accent-100 text-accent-800 border-accent-200';
+      case 'DEBUG':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'TRACE':
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+      default:
+        return null;
+    }
+  };
+
+  const getLogLevelBackgroundColor = (content) => {
+    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
+    if (!levelMatch) return null;
+    
+    const level = levelMatch[1].toUpperCase();
+    switch (level) {
+      case 'ERROR':
+        return 'bg-error-50 border-l-4 border-l-error-400';
+      case 'WARN':
+        return 'bg-warning-50 border-l-4 border-l-warning-400';
+      case 'INFO':
+        return 'bg-accent-50 border-l-4 border-l-accent-400';
+      case 'DEBUG':
+        return 'bg-purple-50 border-l-4 border-l-purple-400';
+      case 'TRACE':
+        return 'bg-gray-50 border-l-4 border-l-gray-400';
+      default:
+        return null;
+    }
+  };
+
+  const extractLogLevel = (content) => {
+    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
+    return levelMatch ? levelMatch[1].toUpperCase() : null;
+  };
+
   // Flatten all entries for continuous scrolling
   const allEntries = useMemo(() => {
     const entries = [];
@@ -98,6 +145,10 @@ const LogViewer = ({
       const isCollapsed = collapsedGroups.has(group.id);
       const groupColor = getGroupColor(group.name);
       
+      // Check if this is a log level group and get appropriate styling
+      const isLogLevelGroup = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'].includes(group.name);
+      const logLevelBadgeClass = isLogLevelGroup ? getLogLevelColor(`[${group.name}]`) : null;
+      
       return (
         <div style={style}>
           <button
@@ -117,8 +168,16 @@ const LogViewer = ({
                   style={{ backgroundColor: groupColor }}
                 />
                 
-                <div>
+                <div className="flex items-center space-x-2">
                   <h4 className="font-semibold text-text-primary">{group.name}</h4>
+                  {isLogLevelGroup && logLevelBadgeClass && (
+                    <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelBadgeClass}`}>
+                      {group.name}
+                    </div>
+                  )}
+                </div>
+                
+                <div>
                   <p className="text-sm text-text-secondary">
                     {group.entries.length} entries
                   </p>
@@ -140,12 +199,16 @@ const LogViewer = ({
       const entry = item.entry;
       const isEven = index % 2 === 0;
       
+      const logLevel = extractLogLevel(entry.content);
+      const logLevelColor = getLogLevelColor(entry.content);
+      const logLevelBackground = getLogLevelBackgroundColor(entry.content);
+      
       return (
         <div style={style}>
           <div
             className={`
               p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
-              ${isEven ? 'bg-background' : 'bg-surface'}
+              ${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')}
             `}
           >
             <div className="flex items-start space-x-3">
@@ -169,6 +232,15 @@ const LogViewer = ({
                   {getOriginalTimestamp(entry.timestamp)}
                 </span>
               </div>
+              
+              {/* Log Level Badge */}
+              {logLevel && (
+                <div className="flex-shrink-0">
+                  <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelColor}`}>
+                    {logLevel}
+                  </div>
+                </div>
+              )}
               
               {/* Content */}
               <div className="flex-1 min-w-0">

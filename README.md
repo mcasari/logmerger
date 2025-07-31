@@ -1,13 +1,14 @@
-# LogMerger - Simplified Log Analysis Tool
+# LogMerger - Advanced Log Analysis Tool
 
 
-A streamlined web application for efficient log file analysis and pattern-based grouping. LogMerger allows you to upload multiple log files simultaneously, treat them as a single logical dataset, and organize content using configurable patterns with advanced pagination support.
+A powerful web application for efficient log file analysis with pattern-based grouping and visual log level identification. LogMerger allows you to upload multiple log files simultaneously, treat them as a single logical dataset, organize content using configurable patterns, and quickly identify log levels through intelligent color coding.
 
 ## 🚀 Key Features
 
 - **Multi-File Upload**: Upload one or more log files at once with drag-and-drop support
 - **Unified Log Processing**: Treat multiple files as a single logical file for analysis
 - **Pattern-Based Grouping**: Configure custom regex patterns to automatically group log entries
+- **Log Level Color Coding**: Automatic visual identification of ERROR, WARN, INFO, DEBUG, TRACE levels
 - **Collapsible Groups**: Expand/collapse content groups for better organization
 - **Advanced Search**: Search across merged log lines with real-time highlighting
 - **Configurable Pagination**: Display all entries with customizable items per page (10, 25, 50, 100, 200)
@@ -29,6 +30,7 @@ A streamlined web application for efficient log file analysis and pattern-based 
 - ✅ Automatic timestamp extraction and chronological sorting
 - ✅ Pattern-based content grouping with configurable regex
 - ✅ Three grouping modes: Log Level, Hour-based, Custom Pattern
+- ✅ Log level color coding for enhanced visual identification
 
 **Content Viewing**:
 - ✅ Collapsible group interface
@@ -36,6 +38,7 @@ A streamlined web application for efficient log file analysis and pattern-based 
 - ✅ Search functionality with text highlighting
 - ✅ File source tracking for each log entry
 - ✅ Color-coded group identification
+- ✅ Log level badges and background color coding
 
 **User Interface**:
 - ✅ Clean, responsive three-column layout
@@ -86,7 +89,7 @@ The application features sophisticated pagination controls:
 
 ### Step 2: Configure Grouping Patterns
 1. **Built-in Patterns**:
-   - **Log Level**: Groups by ERROR, WARN, INFO, DEBUG levels
+   - **Log Level**: Groups by ERROR, WARN, INFO, DEBUG, TRACE levels with color coding
    - **Hour-based**: Groups entries by hour timestamps
    - **Custom Pattern**: Define your own regex pattern
 
@@ -94,12 +97,14 @@ The application features sophisticated pagination controls:
    - Error logs: `\[ERROR\]|ERROR:|Exception`
    - Database queries: `SELECT|INSERT|UPDATE|DELETE`
    - User activities: `login|logout|authentication`
+   - Log levels: `\[(ERROR|WARN|INFO|DEBUG|TRACE)\]` (automatically color-coded)
 
 ### Step 3: Process and View Results
 1. Click "Process Files" to merge and analyze log content
 2. View real-time statistics: files, total lines, filtered lines, groups
 3. Use search to filter across all merged content
 4. Expand/collapse groups as needed for focused analysis
+5. **Note**: All entries are automatically sorted chronologically by timestamp within each group
 
 ### Step 4: Navigate with Pagination
 1. **Set Items Per Page**: Choose your preferred page size from the dropdown
@@ -158,6 +163,13 @@ src/pages/log-merger/
 - **Search Optimization**: Debounced search to prevent excessive filtering
 - **Memory Management**: Automatic cleanup of processed file references
 
+### Log Level Color Coding
+- **Automatic Detection**: Recognizes log levels in format `[ERROR]`, `[WARN]`, `[INFO]`, `[DEBUG]`, `[TRACE]`
+- **Background Colors**: Subtle background colors for each log level (red for errors, yellow for warnings, etc.)
+- **Left Border Indicators**: Colored left borders provide additional visual distinction
+- **Log Level Badges**: Prominent badges show the log level with appropriate colors
+- **Group Header Enhancement**: Log level groups display colored badges in headers
+
 ## 🎨 User Interface Features
 
 ### Responsive Design
@@ -167,6 +179,7 @@ src/pages/log-merger/
 
 ### Visual Indicators
 - **Group Colors**: Color-coded groups based on content type
+- **Log Level Colors**: Automatic color coding for ERROR (red), WARN (yellow), INFO (blue), DEBUG (purple), TRACE (gray)
 - **Processing States**: Real-time visual feedback during file processing
 - **Search Highlighting**: Matched text highlighted in search results
 - **Status Badges**: File processing status and group entry counts
@@ -191,7 +204,7 @@ src/pages/log-merger/
 - **Pattern Testing**: Always test custom patterns with sample data first
 - **Browser Requirements**: Modern browsers with JavaScript enabled
 
-## 🔄 Recent Updates (v1.0.0)
+## 🔄 Recent Updates (v1.1.0)
 
 ### Core Features
 - ✅ **Multi-file upload system** with drag-and-drop support
@@ -201,15 +214,17 @@ src/pages/log-merger/
 - ✅ **Search functionality** with real-time text highlighting
 - ✅ **Collapsible group interface** for organized content viewing
 - ✅ **Export capabilities** for processed log data
+- ✅ **Log level color coding** for enhanced visual identification
 
 ### User Experience
 - ✅ **Responsive design** optimized for all device sizes
 - ✅ **Real-time statistics** showing processing progress
 - ✅ **Visual feedback** throughout the workflow
 - ✅ **Intuitive navigation** with clear action buttons
+- ✅ **Enhanced log level visualization** with background colors and badges
 
 ---
 
 **Start analyzing your logs today!** 🎉
 
-Upload your log files, configure your patterns, and discover insights in your data with powerful pagination and search capabilities.
+Upload your log files, configure your patterns, and discover insights in your data with powerful pagination, search capabilities, and intelligent log level color coding.

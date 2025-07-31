@@ -229,40 +229,59 @@ const SimpleLogViewer = () => {
                 <div className="max-h-[600px] overflow-y-auto">
                   {filteredLogContent.length > 0 ? (
                     <div className="divide-y divide-border">
-                      {filteredLogContent.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className="p-3 hover:bg-surface-hover transition-colors"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <span className="text-xs text-text-muted font-mono bg-background px-2 py-1 rounded">
-                              {entry.line}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-mono text-sm text-text-primary break-all">
-                                {entry.message}
-                              </div>
-                              <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
-                                <span>
-                                  {entry.timestamp}
-                                </span>
-                                <span>•</span>
-                                <span
-                                  className={`
-                                    px-2 py-0.5 rounded text-xs font-medium
-                                    ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
-                                      entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
-                                      entry.level === 'INFO'? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                                    }
-                                  `}
-                                >
-                                  {entry.level}
-                                </span>
+                      {filteredLogContent.map((entry) => {
+                        const getLogLevelBackground = (level) => {
+                          switch (level) {
+                            case 'ERROR':
+                              return 'bg-red-50 border-l-4 border-l-red-400';
+                            case 'WARN':
+                              return 'bg-yellow-50 border-l-4 border-l-yellow-400';
+                            case 'INFO':
+                              return 'bg-blue-50 border-l-4 border-l-blue-400';
+                            case 'DEBUG':
+                              return 'bg-purple-50 border-l-4 border-l-purple-400';
+                            case 'TRACE':
+                              return 'bg-gray-50 border-l-4 border-l-gray-400';
+                            default:
+                              return '';
+                          }
+                        };
+
+                        return (
+                          <div
+                            key={entry.id}
+                            className={`p-3 hover:bg-surface-hover transition-colors ${getLogLevelBackground(entry.level)}`}
+                          >
+                            <div className="flex items-start space-x-3">
+                              <span className="text-xs text-text-muted font-mono bg-background px-2 py-1 rounded">
+                                {entry.line}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-mono text-sm text-text-primary break-all">
+                                  {entry.message}
+                                </div>
+                                <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
+                                  <span>
+                                    {entry.timestamp}
+                                  </span>
+                                  <span>•</span>
+                                  <span
+                                    className={`
+                                      px-2 py-0.5 rounded text-xs font-medium
+                                      ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
+                                        entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
+                                        entry.level === 'INFO'? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                                      }
+                                    `}
+                                  >
+                                    {entry.level}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="p-8 text-center text-text-secondary">
