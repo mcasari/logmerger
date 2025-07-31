@@ -15,13 +15,6 @@ const PatternConfiguration = ({
 
   const predefinedPatterns = [
     {
-      id: 'chronological',
-      name: 'Chronological Order',
-      description: 'Show entries with timestamps in chronological order',
-      pattern: '',
-      example: 'Log entries with timestamps sorted chronologically'
-    },
-    {
       id: 'log-level',
       name: 'Log Level',
       description: 'Group by ERROR, WARN, INFO, DEBUG',

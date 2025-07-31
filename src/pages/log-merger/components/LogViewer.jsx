@@ -54,8 +54,15 @@ const LogViewer = ({
   const allEntries = useMemo(() => {
     const entries = [];
     groups.forEach((group) => {
-      // For chronological view, don't show group headers
-      if (group.id === 'chronological') {
+      if (!collapsedGroups.has(group.id)) {
+        // Add group header
+        entries.push({
+          type: 'group-header',
+          id: `group-${group.id}`,
+          group: group
+        });
+        
+        // Add all group entries
         group.entries.forEach((entry) => {
           entries.push({
             type: 'entry',
@@ -65,31 +72,12 @@ const LogViewer = ({
           });
         });
       } else {
-        if (!collapsedGroups.has(group.id)) {
-          // Add group header
-          entries.push({
-            type: 'group-header',
-            id: `group-${group.id}`,
-            group: group
-          });
-          
-          // Add all group entries
-          group.entries.forEach((entry) => {
-            entries.push({
-              type: 'entry',
-              id: entry.id,
-              entry: entry,
-              group: group
-            });
-          });
-        } else {
-          // Add collapsed group header only
-          entries.push({
-            type: 'group-header',
-            id: `group-${group.id}`,
-            group: group
-          });
-        }
+        // Add collapsed group header only
+        entries.push({
+          type: 'group-header',
+          id: `group-${group.id}`,
+          group: group
+        });
       }
     });
     return entries;
@@ -204,11 +192,10 @@ const LogViewer = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
             <h3 className="text-lg font-semibold text-text-primary">
-              {groups.length === 1 && groups[0].id === 'chronological' ? 'Chronological Log View' : 'Merged Log View'}
+              Merged Log View
             </h3>
             <p className="text-sm text-text-secondary">
-              {totalVisibleEntries.toLocaleString()} entries
-              {groups.length === 1 && groups[0].id === 'chronological' ? ' with timestamps, sorted chronologically' : ` across ${groups.length} groups`}
+              {totalVisibleEntries.toLocaleString()} entries across {groups.length} groups
             </p>
           </div>
           
@@ -222,7 +209,7 @@ const LogViewer = ({
               />
             </div>
             
-            {!(groups.length === 1 && groups[0].id === 'chronological') && (
+            {(
               <Button
                 variant="outline"
                 size="sm"
@@ -265,13 +252,10 @@ const LogViewer = ({
             <div className="text-center">
               <Icon name="Search" size={48} color="var(--color-text-muted)" className="mx-auto mb-4" />
               <h4 className="text-lg font-medium text-text-primary mb-2">
-                {groups.length === 1 && groups[0].id === 'chronological' ? 'No log entries found' : 'No groups found'}
+                No groups found
               </h4>
               <p className="text-text-secondary">
-                {groups.length === 1 && groups[0].id === 'chronological' 
-                  ? 'Upload and process log files to see chronological log entries here'
-                  : 'Upload and process log files to see grouped content here'
-                }
+                Upload and process log files to see grouped content here
               </p>
             </div>
           </div>

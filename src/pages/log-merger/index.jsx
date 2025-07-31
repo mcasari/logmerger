@@ -10,7 +10,7 @@ const LogMerger = () => {
   const [files, setFiles] = useState([]);
   const [logEntries, setLogEntries] = useState([]);
   const [groupingPattern, setGroupingPattern] = useState('\\[(ERROR|WARN|INFO|DEBUG)\\]');
-  const [groupingType, setGroupingType] = useState('chronological'); // 'chronological', 'log-level', 'hour', 'custom'
+  const [groupingType, setGroupingType] = useState('log-level'); // 'log-level', 'hour', 'custom'
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -117,16 +117,6 @@ const LogMerger = () => {
   const groupedEntries = useMemo(() => {
     if (logEntries.length === 0) return [];
 
-    // For chronological view, create a single group with all entries
-    if (groupingType === 'chronological') {
-      return [{
-        id: 'chronological',
-        name: 'Chronological Order',
-        entries: logEntries,
-        count: logEntries.length
-      }];
-    }
-
     const groups = new Map();
 
     logEntries.forEach(entry => {
@@ -219,10 +209,10 @@ const LogMerger = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-text-primary">
-                    LogMerger - Chronological Log Analysis
+                    LogMerger - Log Analysis
                   </h1>
                   <p className="text-text-secondary">
-                    Upload, merge, and view log files in chronological order (entries with timestamps only)
+                    Upload, merge, and view log files with automatic grouping and chronological sorting
                   </p>
                 </div>
               </div>
