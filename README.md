@@ -3,6 +3,8 @@
 
 A powerful web application for efficient log file analysis with pattern-based grouping and visual log level identification. LogMerger allows you to upload multiple log files simultaneously, treat them as a single logical dataset, organize content using configurable patterns, and quickly identify log levels through intelligent color coding.
 
+
+
 ## 🚀 Key Features
 
 - **Multi-File Upload**: Upload one or more log files at once with drag-and-drop support
