@@ -130,7 +130,7 @@ const AnalysisToolbar = ({
               )}
             </div>
 
-            {/* Quick Actions */}
+            {/* Actions */}
             <Button
               variant="ghost"
               size="sm"

@@ -105,7 +105,7 @@ const QuickActionToolbar = ({ className = '' }) => {
           {/* Context Label */}
           <div className="flex items-center space-x-2">
             <Icon name="Zap" size={16} color="var(--color-accent)" />
-            <span className="text-sm font-medium text-text-primary">Quick Actions</span>
+                            <span className="text-sm font-medium text-text-primary">Actions</span>
           </div>
           
           {/* Desktop Actions */}

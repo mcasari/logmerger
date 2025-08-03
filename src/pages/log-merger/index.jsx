@@ -305,10 +305,10 @@ const LogMerger = () => {
               />
             </div>
 
-            {/* Right Column - Quick Actions */}
+            {/* Right Column - Actions */}
             <div className="space-y-6">
               <div className="bg-surface border border-border rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-semibold text-text-primary mb-4">Actions</h3>
                 <div className="space-y-3">
                   <Button
                     variant={files.length > 0 && !isProcessing ? "primary" : "secondary"}
