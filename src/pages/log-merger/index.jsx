@@ -203,18 +203,13 @@ const LogMerger = () => {
           {/* Page Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-10 h-10 bg-primary rounded-lg">
-                  <Icon name="Merge" size={24} color="white" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-text-primary">
-                    Log Analysis
-                  </h1>
-                  <p className="text-text-secondary">
-                    Upload, merge, and view log files with automatic grouping and chronological sorting
-                  </p>
-                </div>
+              <div>
+                <h1 className="text-xl font-bold text-text-primary">
+                  Log Analysis
+                </h1>
+                <p className="text-text-secondary">
+                  Upload, merge, and view log files with automatic grouping and chronological sorting
+                </p>
               </div>
               
               {totalEntries > 0 && (

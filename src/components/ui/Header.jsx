@@ -22,7 +22,7 @@ const Header = () => {
               <Icon name="Merge" size={20} color="white" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-xl font-semibold text-text-primary">LogMerger</h1>
+              <h1 className="text-2xl font-semibold text-text-primary">LogMerger</h1>
             </div>
           </div>
 
