@@ -1,5 +1,4 @@
-import React, { useMemo, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
@@ -170,127 +169,112 @@ const LogViewer = ({
     return groups.reduce((total, group) => total + group.entries.length, 0);
   }, [groups]);
 
-  // Row renderer for virtual scrolling
-  const Row = ({ index, style }) => {
-    const item = allEntries[index];
+  // Render group header
+  const renderGroupHeader = (group, isCollapsed) => {
+    const groupColor = getGroupColor(group.name);
+    const isLogLevelGroup = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'].includes(group.name);
+    const logLevelBadgeClass = isLogLevelGroup ? getLogLevelColor(`[${group.name}]`) : null;
     
-    if (!item) return null;
-
-    if (item.type === 'group-header') {
-      const group = item.group;
-      const isCollapsed = collapsedGroups.has(group.id);
-      const groupColor = getGroupColor(group.name);
-      
-      // Check if this is a log level group and get appropriate styling
-      const isLogLevelGroup = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'].includes(group.name);
-      const logLevelBadgeClass = isLogLevelGroup ? getLogLevelColor(`[${group.name}]`) : null;
-      
-      return (
-        <div style={style}>
-          <button
-            onClick={() => onGroupToggle(group.id)}
-            className="w-full px-6 py-4 text-left hover:bg-surface-hover transition-colors duration-150 bg-background border-b border-border"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Icon 
-                  name={isCollapsed ? "ChevronRight" : "ChevronDown"} 
-                  size={16} 
-                  color="var(--color-text-secondary)" 
-                />
-                
-                <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: groupColor }}
-                />
-                
-                <div className="flex items-center space-x-2">
-                  <h4 className="font-semibold text-text-primary">{group.name}</h4>
-                  {isLogLevelGroup && logLevelBadgeClass && (
-                    <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelBadgeClass}`}>
-                      {group.name}
-                    </div>
-                  )}
-                </div>
-                
-                <div>
-                  <p className="text-sm text-text-secondary">
-                    {group.entries.length} entries
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-text-muted">
-                  {isCollapsed ? 'Show' : 'Hide'}
-                </span>
-              </div>
-            </div>
-          </button>
-        </div>
-      );
-    }
-
-    if (item.type === 'entry') {
-      const entry = item.entry;
-      const isEven = index % 2 === 0;
-      
-      const logLevel = extractLogLevel(entry.content);
-      const logLevelColor = getLogLevelColor(entry.content);
-      const logLevelBackground = getLogLevelBackgroundColor(entry.content);
-      
-      return (
-        <div style={style}>
-          <div
-            className={`
-              p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
-              ${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')}
-            `}
-          >
-            <div className="flex items-start space-x-3">
-              {/* File Badge */}
-              <div className="flex-shrink-0">
-                <div className="px-2 py-1 bg-accent-100 text-accent-700 rounded text-xs font-medium">
-                  {entry.fileName}
-                </div>
-              </div>
-              
-              {/* Line Number */}
-              <div className="flex-shrink-0 w-12 text-right">
-                <span className="text-xs text-text-muted font-mono">
-                  {entry.lineNumber}
-                </span>
-              </div>
-              
-              {/* Timestamp */}
-              <div className="flex-shrink-0 w-40">
-                <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
-                  {getOriginalTimestamp(entry.timestamp)}
-                </span>
-              </div>
-              
-              {/* Log Level Badge */}
-              {logLevel && (
-                <div className="flex-shrink-0">
-                  <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelColor}`}>
-                    {logLevel}
-                  </div>
+    return (
+      <button
+        key={`group-${group.id}`}
+        onClick={() => onGroupToggle(group.id)}
+        className="w-full px-6 py-4 text-left hover:bg-surface-hover transition-colors duration-150 bg-background border-b border-border"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Icon 
+              name={isCollapsed ? "ChevronRight" : "ChevronDown"} 
+              size={16} 
+              color="var(--color-text-secondary)" 
+            />
+            
+            <div 
+              className="w-3 h-3 rounded-full flex-shrink-0"
+              style={{ backgroundColor: groupColor }}
+            />
+            
+            <div className="flex items-center space-x-2">
+              <h4 className="font-semibold text-text-primary">{group.name}</h4>
+              {isLogLevelGroup && logLevelBadgeClass && (
+                <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelBadgeClass}`}>
+                  {group.name}
                 </div>
               )}
-              
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-mono text-text-primary whitespace-pre-wrap break-words">
-                  {highlightText(entry.content, searchQuery)}
-                </div>
+            </div>
+            
+            <div>
+              <p className="text-sm text-text-secondary">
+                {group.entries.length} entries
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-text-muted">
+              {isCollapsed ? 'Show' : 'Hide'}
+            </span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  // Render log entry
+  const renderLogEntry = (entry, index) => {
+    const isEven = index % 2 === 0;
+    const logLevel = extractLogLevel(entry.content);
+    const logLevelColor = getLogLevelColor(entry.content);
+    const logLevelBackground = getLogLevelBackgroundColor(entry.content);
+    
+    return (
+      <div
+        key={entry.id}
+        className={`
+          p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
+          ${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')}
+        `}
+      >
+        <div className="flex items-start space-x-3">
+          {/* File Badge */}
+          <div className="flex-shrink-0">
+            <div className="px-2 py-1 bg-accent-100 text-accent-700 rounded text-xs font-medium">
+              {entry.fileName}
+            </div>
+          </div>
+          
+          {/* Line Number */}
+          <div className="flex-shrink-0 w-12 text-right">
+            <span className="text-xs text-text-muted font-mono">
+              {entry.lineNumber}
+            </span>
+          </div>
+          
+          {/* Timestamp */}
+          <div className="flex-shrink-0 w-40">
+            <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
+              {getOriginalTimestamp(entry.timestamp)}
+            </span>
+          </div>
+          
+          {/* Log Level Badge */}
+          {logLevel && (
+            <div className="flex-shrink-0">
+              <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelColor}`}>
+                {logLevel}
               </div>
+            </div>
+          )}
+          
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">
+              {highlightText(entry.content, searchQuery)}
             </div>
           </div>
         </div>
-      );
-    }
-
-    return null;
+      </div>
+    );
   };
 
   return (
@@ -344,17 +328,28 @@ const LogViewer = ({
         </div>
       </div>
 
-      {/* Continuous Scrolling Content */}
-      <div className="h-96">
+      {/* Dynamic Height Content */}
+      <div className="h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent">
         {groups.length > 0 ? (
-          <List
-            height={384} // 24rem in pixels
-            itemCount={allEntries.length}
-            itemSize={80} // Approximate height per row
-            className="scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent"
-          >
-            {Row}
-          </List>
+          <div>
+            {groups.map((group) => {
+              const isCollapsed = collapsedGroups.has(group.id);
+              
+              return (
+                <div key={group.id}>
+                  {renderGroupHeader(group, isCollapsed)}
+                  
+                  {!isCollapsed && (
+                    <div>
+                      {group.entries.map((entry, index) => 
+                        renderLogEntry(entry, index)
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
