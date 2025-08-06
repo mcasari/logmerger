@@ -51,50 +51,86 @@ const LogViewer = ({
   };
 
   const getLogLevelColor = (content) => {
-    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
-    if (!levelMatch) return null;
+    // Try multiple patterns for log level detection
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,  // [ERROR], [INFO], etc.
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,  // ERROR, INFO, etc. (word boundaries)
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,    // ERROR:, INFO:, etc. (start of line)
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i    // ERROR , INFO , etc. (followed by space)
+    ];
     
-    const level = levelMatch[1].toUpperCase();
-    switch (level) {
-      case 'ERROR':
-        return 'bg-error-100 text-error-800 border-error-200';
-      case 'WARN':
-        return 'bg-warning-100 text-warning-800 border-warning-200';
-      case 'INFO':
-        return 'bg-accent-100 text-accent-800 border-accent-200';
-      case 'DEBUG':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'TRACE':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return null;
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        switch (level.toUpperCase()) {
+          case 'ERROR':
+            return 'bg-error-100 text-error-800 border-error-200';
+          case 'WARN':
+            return 'bg-warning-100 text-warning-800 border-warning-200';
+          case 'INFO':
+            return 'bg-accent-100 text-accent-800 border-accent-200';
+          case 'DEBUG':
+            return 'bg-secondary-100 text-secondary-700 border-secondary-200';
+          case 'TRACE':
+            return 'bg-secondary-100 text-secondary-700 border-secondary-200';
+          default:
+            continue;
+        }
+      }
     }
+    return null;
   };
 
   const getLogLevelBackgroundColor = (content) => {
-    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
-    if (!levelMatch) return null;
+    // Try multiple patterns for log level detection
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,  // [ERROR], [INFO], etc.
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,  // ERROR, INFO, etc. (word boundaries)
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,    // ERROR:, INFO:, etc. (start of line)
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i    // ERROR , INFO , etc. (followed by space)
+    ];
     
-    const level = levelMatch[1].toUpperCase();
-    switch (level) {
-      case 'ERROR':
-        return 'bg-error-50 border-l-4 border-l-error-400';
-      case 'WARN':
-        return 'bg-warning-50 border-l-4 border-l-warning-400';
-      case 'INFO':
-        return 'bg-accent-50 border-l-4 border-l-accent-400';
-      case 'DEBUG':
-        return 'bg-purple-50 border-l-4 border-l-purple-400';
-      case 'TRACE':
-        return 'bg-gray-50 border-l-4 border-l-gray-400';
-      default:
-        return null;
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        switch (level.toUpperCase()) {
+          case 'ERROR':
+            return 'bg-error-50 border-l-4 border-l-error-500';
+          case 'WARN':
+            return 'bg-warning-50 border-l-4 border-l-warning-500';
+          case 'INFO':
+            return 'bg-accent-50 border-l-4 border-l-accent-500';
+          case 'DEBUG':
+            return 'bg-secondary-50 border-l-4 border-l-secondary-400';
+          case 'TRACE':
+            return 'bg-secondary-50 border-l-4 border-l-secondary-400';
+          default:
+            continue;
+        }
+      }
     }
+    return null;
   };
 
   const extractLogLevel = (content) => {
-    const levelMatch = content.match(/\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i);
-    return levelMatch ? levelMatch[1].toUpperCase() : null;
+    // Try multiple patterns for log level detection
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,  // [ERROR], [INFO], etc.
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,  // ERROR, INFO, etc. (word boundaries)
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,    // ERROR:, INFO:, etc. (start of line)
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i    // ERROR , INFO , etc. (followed by space)
+    ];
+    
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        return level.toUpperCase();
+      }
+    }
+    return null;
   };
 
   // Flatten all entries for continuous scrolling
