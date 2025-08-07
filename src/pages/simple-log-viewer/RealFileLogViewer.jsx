@@ -5,128 +5,112 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import { useChunkedFileReader, useLogParser } from '../../components/ChunkedFileReader';
 
-const CHUNK_SIZE = 1000; // Number of lines to load per chunk
+const CHUNK_SIZE = 1000; // Number of lines to display per chunk
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
 const INITIAL_CHUNKS = 3; // Number of chunks to load initially
 
-const SimpleLogViewer = () => {
+const RealFileLogViewer = () => {
   const navigate = useNavigate();
-  const [mergedFiles, setMergedFiles] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [logContent, setLogContent] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loadedChunks, setLoadedChunks] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [totalLines, setTotalLines] = useState(0);
+  const [fileProcessingProgress, setFileProcessingProgress] = useState(0);
   const listRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Load merged files from localStorage
-  useEffect(() => {
-    const storedFiles = localStorage.getItem('mergedLogFiles');
-    if (storedFiles) {
-      const files = JSON.parse(storedFiles);
-      setMergedFiles(files);
-      if (files.length > 0) {
-        setSelectedFile(files[0]);
-      }
+  const { readFileInChunks, cancelReading, isReading, progress, totalSize, processedLines } = useChunkedFileReader();
+  const { parseLogLine } = useLogParser();
+
+  // Handle file upload
+  const handleFileUpload = useCallback((event) => {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    const newFiles = files.map((file, index) => ({
+      id: `file-${Date.now()}-${index}`,
+      name: file.name,
+      size: file.size,
+      file: file,
+      lineCount: 0,
+      processed: false
+    }));
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    
+    // Process the first file automatically
+    if (newFiles.length > 0) {
+      processFile(newFiles[0]);
     }
   }, []);
 
-  // Generate log content in chunks
-  const generateLogChunk = useCallback((startIndex, chunkSize, fileName) => {
-    const chunk = [];
-    const endIndex = Math.min(startIndex + chunkSize, totalLines);
-    
-    for (let i = startIndex; i < endIndex; i++) {
-      const timestamp = new Date(Date.now() - Math.random() * 86400000 * 7);
-      const levels = ['INFO', 'WARN', 'ERROR', 'DEBUG'];
-      const level = levels[Math.floor(Math.random() * levels.length)];
-      const messages = [
-        'User authentication successful',
-        'Database connection established',
-        'Cache invalidated for user session',
-        'API request processed successfully',
-        'Memory usage within normal limits',
-        'Service startup completed',
-        'Configuration loaded from file',
-        'Background task executed'
-      ];
-      
-      const originalTimestampFormat = (date) => {
-        const year = date.getUTCFullYear();
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const hours = String(date.getUTCHours()).padStart(2, '0');
-        const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-        const seconds = String(date.getUTCSeconds()).padStart(2, '0');
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-      };
-      
-      const originalTimestamp = originalTimestampFormat(timestamp);
-      
-      chunk.push({
-        id: `log-${i}`,
-        line: i + 1,
-        timestamp: originalTimestamp,
-        level: level,
-        message: `[${level}] ${originalTimestamp} - ${messages[Math.floor(Math.random() * messages.length)]} (${fileName}:${i + 1})`,
-        source: fileName
-      });
-    }
-    
-    return chunk;
-  }, [totalLines]);
+  // Process a single file
+  const processFile = useCallback(async (fileInfo) => {
+    if (!fileInfo.file) return;
 
-  // Initialize log content when file changes
-  useEffect(() => {
-    if (!selectedFile) return;
-
-    setIsLoading(true);
-    const fileLineCount = selectedFile.lineCount || 100000; // Simulate large file
-    setTotalLines(fileLineCount);
-    setLoadedChunks(0);
+    setSelectedFile(fileInfo);
     setLogContent([]);
+    setLoadedChunks(0);
+    setTotalLines(0);
+    setIsLoading(true);
 
-    // Load initial chunks
-    const loadInitialChunks = async () => {
-      const initialContent = [];
-      for (let i = 0; i < INITIAL_CHUNKS; i++) {
-        const chunk = generateLogChunk(i * CHUNK_SIZE, CHUNK_SIZE, selectedFile.name);
-        initialContent.push(...chunk);
-      }
-      setLogContent(initialContent);
-      setLoadedChunks(INITIAL_CHUNKS);
-      setIsLoading(false);
+    const allLines = [];
+    let lineNumber = 1;
+
+    const onChunkProcessed = (lines, totalProcessed) => {
+      const parsedLines = lines.map(line => parseLogLine(line, lineNumber++));
+      allLines.push(...parsedLines);
+      setFileProcessingProgress((totalProcessed / (fileInfo.size / 1024)) * 100);
     };
 
-    loadInitialChunks();
-  }, [selectedFile, generateLogChunk]);
+    const onComplete = () => {
+      setTotalLines(allLines.length);
+      setLogContent(allLines.slice(0, INITIAL_CHUNKS * CHUNK_SIZE));
+      setLoadedChunks(INITIAL_CHUNKS);
+      setIsLoading(false);
+      setFileProcessingProgress(0);
+      
+      // Update file info
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileInfo.id 
+          ? { ...f, lineCount: allLines.length, processed: true }
+          : f
+      ));
+    };
+
+    const onError = (error) => {
+      console.error('Error processing file:', error);
+      setIsLoading(false);
+      setFileProcessingProgress(0);
+    };
+
+    await readFileInChunks(fileInfo.file, onChunkProcessed, onComplete, onError);
+  }, [readFileInChunks, parseLogLine]);
 
   // Load more chunks when needed
   const loadMoreChunks = useCallback(async () => {
     if (isLoading || loadedChunks * CHUNK_SIZE >= totalLines) return;
 
     setIsLoading(true);
-    const newChunks = [];
-    const chunksToLoad = Math.min(2, Math.ceil((totalLines - loadedChunks * CHUNK_SIZE) / CHUNK_SIZE));
+    const startIndex = loadedChunks * CHUNK_SIZE;
+    const endIndex = Math.min(startIndex + CHUNK_SIZE, totalLines);
+    const newChunk = logContent.slice(startIndex, endIndex);
     
-    for (let i = 0; i < chunksToLoad; i++) {
-      const chunkIndex = loadedChunks + i;
-      const chunk = generateLogChunk(chunkIndex * CHUNK_SIZE, CHUNK_SIZE, selectedFile.name);
-      newChunks.push(...chunk);
-    }
-    
-    setLogContent(prev => [...prev, ...newChunks]);
-    setLoadedChunks(prev => prev + chunksToLoad);
+    setLogContent(prev => [...prev, ...newChunk]);
+    setLoadedChunks(prev => prev + 1);
     setIsLoading(false);
-  }, [isLoading, loadedChunks, totalLines, generateLogChunk, selectedFile]);
+  }, [isLoading, loadedChunks, totalLines, logContent]);
 
   // Handle scroll to load more data
   const handleScroll = useCallback(({ scrollOffset, scrollUpdateWasRequested }) => {
     if (scrollUpdateWasRequested) return;
     
-    const listHeight = 600; // Height of the list container
+    const listHeight = 600;
     const scrollPosition = scrollOffset + listHeight;
     const totalHeight = logContent.length * ITEM_HEIGHT;
     
@@ -143,7 +127,7 @@ const SimpleLogViewer = () => {
     return logContent.filter(entry => 
       entry.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
       entry.level.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      entry.source.toLowerCase().includes(searchQuery.toLowerCase())
+      entry.timestamp.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [logContent, searchQuery]);
 
@@ -184,10 +168,12 @@ const SimpleLogViewer = () => {
                 {entry.message}
               </div>
               <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
-                <span>
-                  {entry.timestamp}
-                </span>
-                <span>•</span>
+                {entry.timestamp && (
+                  <>
+                    <span>{entry.timestamp}</span>
+                    <span>•</span>
+                  </>
+                )}
                 <span
                   className={`
                     px-2 py-0.5 rounded text-xs font-medium
@@ -217,36 +203,23 @@ const SimpleLogViewer = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `merged-logs-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `filtered-logs-${new Date().toISOString().split('T')[0]}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  if (mergedFiles.length === 0) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-16">
-          <div className="max-w-4xl mx-auto px-4 lg:px-6 py-8 text-center">
-            <div className="mb-8">
-              <Icon name="FileText" size={64} color="var(--color-text-secondary)" className="mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-text-primary mb-2">No Log Files</h1>
-              <p className="text-text-secondary">Upload some log files first to view them here.</p>
-            </div>
-            <Button
-              variant="primary"
-              iconName="Upload"
-              onClick={handleBackToUpload}
-            >
-              Upload Log Files
-            </Button>
-          </div>
-        </main>
-      </div>
-    );
-  }
+  const handleFileSelect = (fileInfo) => {
+    if (fileInfo.processed) {
+      setSelectedFile(fileInfo);
+      setLogContent(fileInfo.logContent || []);
+      setLoadedChunks(INITIAL_CHUNKS);
+      setTotalLines(fileInfo.lineCount || 0);
+    } else {
+      processFile(fileInfo);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -261,9 +234,9 @@ const SimpleLogViewer = () => {
                 <Icon name="FileText" size={24} color="white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-text-primary">Log Viewer</h1>
+                <h1 className="text-2xl font-bold text-text-primary">Real File Log Viewer</h1>
                 <p className="text-text-secondary">
-                  Viewing merged content from {mergedFiles.length} files
+                  Upload and view large log files with chunked loading
                 </p>
               </div>
             </div>
@@ -272,6 +245,7 @@ const SimpleLogViewer = () => {
                 variant="ghost"
                 iconName="Download"
                 onClick={handleExport}
+                disabled={filteredLogContent.length === 0}
               >
                 Export
               </Button>
@@ -285,31 +259,81 @@ const SimpleLogViewer = () => {
             </div>
           </div>
 
+          {/* File Upload Section */}
+          <div className="mb-6">
+            <div className="bg-surface border border-border rounded-lg p-4">
+              <div className="flex items-center space-x-4">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".log,.txt,.csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="primary"
+                  iconName="Upload"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isReading}
+                >
+                  Upload Log Files
+                </Button>
+                {isReading && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-text-secondary">
+                      Processing... {Math.round(progress)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* File Selector Sidebar */}
             <div className="lg:col-span-1">
               <div className="bg-surface border border-border rounded-lg p-4">
-                <h3 className="font-medium text-text-primary mb-3">Source Files</h3>
-                <div className="space-y-2">
-                  {mergedFiles.map((file, index) => (
-                    <button
-                      key={file.id}
-                      onClick={() => setSelectedFile(file)}
-                      className={`
-                        w-full text-left p-3 rounded-md transition-colors
-                        ${selectedFile?.id === file.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background hover:bg-surface-hover'
-                        }
-                      `}
-                    >
-                      <div className="font-medium text-sm">{file.name}</div>
-                      <div className="text-xs opacity-75">
-                        {(file.size / 1024).toFixed(1)} KB
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <h3 className="font-medium text-text-primary mb-3">Uploaded Files</h3>
+                {uploadedFiles.length === 0 ? (
+                  <div className="text-center py-8 text-text-secondary">
+                    <Icon name="Upload" size={32} color="currentColor" className="mx-auto mb-2" />
+                    <p>No files uploaded yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {uploadedFiles.map((file) => (
+                      <button
+                        key={file.id}
+                        onClick={() => handleFileSelect(file)}
+                        className={`
+                          w-full text-left p-3 rounded-md transition-colors
+                          ${selectedFile?.id === file.id
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-background hover:bg-surface-hover'
+                          }
+                        `}
+                      >
+                        <div className="font-medium text-sm">{file.name}</div>
+                        <div className="text-xs opacity-75">
+                          {(file.size / 1024).toFixed(1)} KB
+                          {file.processed && ` • ${file.lineCount?.toLocaleString()} lines`}
+                        </div>
+                        {file.id === selectedFile?.id && isReading && (
+                          <div className="mt-1">
+                            <div className="w-full bg-gray-200 rounded-full h-1">
+                              <div 
+                                className="bg-primary h-1 rounded-full transition-all duration-300"
+                                style={{ width: `${fileProcessingProgress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Search */}
                 <div className="mt-4">
@@ -377,7 +401,7 @@ const SimpleLogViewer = () => {
                       ) : (
                         <>
                           <Icon name="FileText" size={32} color="currentColor" className="mx-auto mb-2" />
-                          <p>Select a file to view its content</p>
+                          <p>Upload a log file to view its content</p>
                         </>
                       )}
                     </div>
@@ -392,4 +416,4 @@ const SimpleLogViewer = () => {
   );
 };
 
-export default SimpleLogViewer;
+export default RealFileLogViewer; 

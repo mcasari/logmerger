@@ -5,6 +5,8 @@ import ErrorBoundary from "components/ErrorBoundary";
 // Simplified imports for core functionality only
 import LogMerger from "pages/log-merger";
 import NotFound from "pages/NotFound";
+import SimpleLogViewer from "pages/simple-log-viewer";
+import RealFileLogViewer from "pages/simple-log-viewer/RealFileLogViewer";
 
 const Routes = () => {
   return (
@@ -15,6 +17,8 @@ const Routes = () => {
         {/* Simplified routing - single main page */}
         <Route path="/" element={<LogMerger />} />
         <Route path="/log-merger" element={<LogMerger />} />
+        <Route path="/simple-log-viewer" element={<SimpleLogViewer />} />
+        <Route path="/real-file-log-viewer" element={<RealFileLogViewer />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>
       </ErrorBoundary>
