@@ -6,9 +6,10 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
-const CHUNK_SIZE = 500; // Smaller chunks for faster loading
+const CHUNK_SIZE = 200; // Even smaller chunks for ultra-fast loading
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
-const INITIAL_CHUNKS = 2; // Fewer initial chunks for faster start
+const INITIAL_CHUNKS = 1; // Just one chunk for instant start
+const PREVIEW_LINES = 50; // Show only 50 lines immediately
 
 const SimpleLogViewer = () => {
   const navigate = useNavigate();
@@ -88,16 +89,19 @@ const SimpleLogViewer = () => {
     setLoadedChunks(0);
     setLogContent([]);
 
-    // Load initial chunks
+    // Load initial chunks - ultra fast with minimal content
     const loadInitialChunks = async () => {
-      const initialContent = [];
-      for (let i = 0; i < INITIAL_CHUNKS; i++) {
-        const chunk = generateLogChunk(i * CHUNK_SIZE, CHUNK_SIZE, selectedFile.name);
-        initialContent.push(...chunk);
-      }
-      setLogContent(initialContent);
-      setLoadedChunks(INITIAL_CHUNKS);
+      // Show just a preview first for instant feedback
+      const previewContent = generateLogChunk(0, PREVIEW_LINES, selectedFile.name);
+      setLogContent(previewContent);
+      setLoadedChunks(1);
       setIsLoading(false);
+      
+      // Load remaining content in background
+      setTimeout(() => {
+        const remainingContent = generateLogChunk(PREVIEW_LINES, CHUNK_SIZE - PREVIEW_LINES, selectedFile.name);
+        setLogContent(prev => [...prev, ...remainingContent]);
+      }, 50);
     };
 
     loadInitialChunks();

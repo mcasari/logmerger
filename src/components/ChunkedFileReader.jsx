@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const CHUNK_SIZE = 512 * 1024; // 512KB chunks for faster initial response
-const LINE_BUFFER_SIZE = 500; // Smaller batches for better responsiveness
+const CHUNK_SIZE = 256 * 1024; // 256KB chunks for ultra-fast initial response
+const LINE_BUFFER_SIZE = 200; // Even smaller batches for instant feedback
 const PROCESSING_DELAY = 0; // Minimal delay between chunks for UI responsiveness
+const INITIAL_CHUNK_SIZE = 64 * 1024; // First chunk is even smaller (64KB)
 
 export const useChunkedFileReader = () => {
   const [isReading, setIsReading] = useState(false);
@@ -63,7 +64,9 @@ export const useChunkedFileReader = () => {
           return;
         }
         
-        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        // Use smaller chunk size for first chunk for faster initial response
+        const chunkSize = offset === 0 ? INITIAL_CHUNK_SIZE : CHUNK_SIZE;
+        const chunk = file.slice(offset, offset + chunkSize);
         
         if (chunk.size === 0) {
           // Process any remaining buffer
@@ -79,7 +82,7 @@ export const useChunkedFileReader = () => {
           const chunk = e.target.result;
           await processChunk(chunk);
           
-          offset += CHUNK_SIZE;
+          offset += chunkSize;
           const newProgress = Math.min((offset / file.size) * 100, 100);
           setProgress(newProgress);
           setProcessedLines(lineCount);

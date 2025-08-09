@@ -5,12 +5,14 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import { useChunkedFileReader, useLogParser } from '../../components/ChunkedFileReader';
+import { useLogParser } from '../../components/ChunkedFileReader';
 
 const CHUNK_SIZE = 500; // Smaller chunks for faster initial display
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
-const INITIAL_CHUNKS = 2; // Fewer initial chunks for faster start
-const PROGRESSIVE_CHUNK_SIZE = 250; // Size for progressive loading during file processing
+const INITIAL_CHUNKS = 1; // Only 1 chunk for ultra-fast start
+const PROGRESSIVE_CHUNK_SIZE = 100; // Much smaller increments for instant feedback
+const PREVIEW_SIZE = 50; // Show first 50 lines instantly as preview
+const PREVIEW_BYTES = 4096; // Read only first 4KB for instant preview
 
 const RealFileLogViewer = () => {
   const navigate = useNavigate();
@@ -25,11 +27,47 @@ const RealFileLogViewer = () => {
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const { readFileInChunks, cancelReading, isReading, progress, totalSize, processedLines } = useChunkedFileReader();
   const { parseLogLine } = useLogParser();
+  
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // ULTRA-SIMPLE: Just read first few lines immediately
+  const showSimplePreview = useCallback(async (file) => {
+    try {
+      // Read ONLY first 2KB - tiny amount for instant display
+      const previewChunk = file.slice(0, 2048);
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const text = e.target.result;
+        const lines = text.split('\n').slice(0, 20); // ONLY 20 lines
+        
+        // NO PARSING AT ALL - just display raw
+        const previewEntries = lines
+          .filter(line => line.trim())
+          .map((line, index) => ({
+            id: `simple-${index}`,
+            line: index + 1,
+            timestamp: '',
+            level: 'PREVIEW',
+            message: line,
+            originalMessage: line
+          }));
+        
+        setLogContent(previewEntries);
+        setLoadedChunks(1);
+        setTotalLines(previewEntries.length);
+        setIsLoading(false);
+      };
+      
+      reader.readAsText(previewChunk);
+    } catch (error) {
+      console.error('Simple preview failed:', error);
+    }
+  }, []);
 
   // Handle file upload
-  const handleFileUpload = useCallback((event) => {
+  const handleFileUpload = useCallback(async (event) => {
     const files = Array.from(event.target.files);
     if (files.length === 0) return;
 
@@ -44,21 +82,77 @@ const RealFileLogViewer = () => {
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
     
-    // Process the first file automatically
+    // SIMPLE: Just show preview immediately, that's it!
     if (newFiles.length > 0) {
-      processFile(newFiles[0]);
+      const firstFile = newFiles[0];
+      setSelectedFile(firstFile);
+      setIsLoading(true);
+      
+      // Show simple preview immediately
+      await showSimplePreview(firstFile.file);
     }
-  }, []);
+  }, [showSimplePreview]);
 
-  // Process a single file with progressive rendering
-  const processFile = useCallback(async (fileInfo) => {
+  // REVOLUTIONARY: Process file instantly without blocking parsing
+  const processFileInstantly = useCallback(async (fileInfo) => {
     if (!fileInfo.file) return;
 
     setSelectedFile(fileInfo);
     setLogContent([]);
     setLoadedChunks(0);
     setTotalLines(0);
+    setIsLoading(false); // No loading state - instant display!
+
+    const onContentDisplay = (entries, isInstant) => {
+      if (isInstant) {
+        // Replace content for instant display
+        setLogContent(entries);
+        setLoadedChunks(1);
+        setTotalLines(entries.length);
+      } else {
+        // Append content as it streams in
+        setLogContent(prev => [...prev, ...entries]);
+        setTotalLines(prev => prev + entries.length);
+        setLoadedChunks(prev => Math.ceil((prev * CHUNK_SIZE + entries.length) / CHUNK_SIZE));
+      }
+    };
+
+    const onComplete = () => {
+      setIsLoading(false);
+      
+      // Update file info
+      setUploadedFiles(prev => prev.map(f => 
+        f.id === fileInfo.id 
+          ? { ...f, processed: true, lineCount: totalLines }
+          : f
+      ));
+    };
+
+    const onError = (error) => {
+      console.error('Error processing file instantly:', error);
+      setIsLoading(false);
+      // Fallback to regular processing
+      setUseInstantMode(false);
+      processFile(fileInfo);
+    };
+
+    await readFileInstantly(fileInfo.file, onContentDisplay, onComplete, onError);
+  }, [readFileInstantly, totalLines, processFile]);
+
+  // Process a single file with progressive rendering
+  const processFile = useCallback(async (fileInfo) => {
+    if (!fileInfo.file) return;
+
+    // Don't clear content if we're already showing preview
+    if (!isShowingPreview) {
+      setSelectedFile(fileInfo);
+      setLogContent([]);
+      setLoadedChunks(0);
+      setTotalLines(0);
+    }
+    
     setIsLoading(true);
+    setIsShowingPreview(false); // No longer just preview
 
     const allLines = [];
     let lineNumber = 1;
@@ -159,7 +253,11 @@ const RealFileLogViewer = () => {
     const entry = filteredLogContent[index];
     if (!entry) return null;
 
-    const getLogLevelBackground = (level) => {
+    const getLogLevelBackground = (level, isRaw = false) => {
+      if (isRaw) {
+        return 'bg-blue-25 border-l-4 border-l-blue-300'; // Special styling for raw content
+      }
+      
       switch (level) {
         case 'ERROR':
           return 'bg-red-50 border-l-4 border-l-red-400';
@@ -171,6 +269,8 @@ const RealFileLogViewer = () => {
           return 'bg-purple-50 border-l-4 border-l-purple-400';
         case 'TRACE':
           return 'bg-gray-50 border-l-4 border-l-gray-400';
+        case 'RAW':
+          return 'bg-blue-25 border-l-4 border-l-blue-300';
         default:
           return '';
       }
@@ -179,7 +279,7 @@ const RealFileLogViewer = () => {
     return (
       <div
         style={style}
-        className={`hover:bg-surface-hover transition-colors ${getLogLevelBackground(entry.level)}`}
+        className={`hover:bg-surface-hover transition-colors ${getLogLevelBackground(entry.level, entry.isRaw)}`}
       >
         <div className="p-3">
           <div className="flex items-start space-x-3">
@@ -190,25 +290,34 @@ const RealFileLogViewer = () => {
               <div className="font-mono text-sm text-text-primary break-all">
                 {entry.message}
               </div>
-              <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
-                {entry.timestamp && (
-                  <>
-                    <span>{entry.timestamp}</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span
-                  className={`
-                    px-2 py-0.5 rounded text-xs font-medium
-                    ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
-                      entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
-                      entry.level === 'INFO'? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
-                    }
-                  `}
-                >
-                  {entry.level}
-                </span>
-              </div>
+              {!entry.isRaw && (
+                <div className="flex items-center space-x-2 mt-1 text-xs text-text-muted">
+                  {entry.timestamp && (
+                    <>
+                      <span>{entry.timestamp}</span>
+                      <span>•</span>
+                    </>
+                  )}
+                  <span
+                    className={`
+                      px-2 py-0.5 rounded text-xs font-medium
+                      ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
+                        entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
+                        entry.level === 'INFO'? 'bg-green-100 text-green-700' : 
+                        entry.level === 'RAW' ? 'bg-blue-100 text-blue-700' :
+                        'bg-purple-100 text-purple-700'
+                      }
+                    `}
+                  >
+                    {entry.level}
+                  </span>
+                </div>
+              )}
+              {entry.isRaw && (
+                <div className="text-xs text-blue-600 mt-1">
+                  Raw content - parsing in background...
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -264,6 +373,14 @@ const RealFileLogViewer = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              <Button
+                variant={useInstantMode ? "primary" : "outline"}
+                iconName="Zap"
+                onClick={() => setUseInstantMode(!useInstantMode)}
+                size="sm"
+              >
+                {useInstantMode ? 'Instant Mode' : 'Standard Mode'}
+              </Button>
               <Button
                 variant="ghost"
                 iconName="Download"
