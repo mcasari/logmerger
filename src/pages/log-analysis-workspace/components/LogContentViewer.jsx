@@ -168,7 +168,7 @@ const LogContentViewer = ({
                 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                 ${entry.level === 'ERROR' ? 'bg-error-100 text-error-800' :
                   entry.level === 'WARN' ? 'bg-warning-100 text-warning-800' :
-                  entry.level === 'INFO'? 'bg-accent-100 text-accent-800' : 'bg-surface text-text-secondary'
+                  entry.level === 'INFO'? 'bg-green-100 text-green-800' : 'bg-surface text-text-secondary'
                 }
               `}>
                 {entry.level}

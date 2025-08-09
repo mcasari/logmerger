@@ -236,7 +236,7 @@ const SearchAndFilterPanel = ({
                     px-2 py-1 rounded text-xs font-medium
                     ${level === 'ERROR' ? 'bg-error-100 text-error-800' :
                       level === 'WARN' ? 'bg-warning-100 text-warning-800' :
-                      level === 'INFO'? 'bg-accent-100 text-accent-800' : 'bg-surface text-text-secondary'
+                      level === 'INFO'? 'bg-green-100 text-green-800' : 'bg-surface text-text-secondary'
                     }
                   `}>
                     {level}

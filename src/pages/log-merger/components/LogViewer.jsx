@@ -68,7 +68,7 @@ const LogViewer = ({
           case 'WARN':
             return 'bg-warning-100 text-warning-800 border-warning-200';
           case 'INFO':
-            return 'bg-accent-100 text-accent-800 border-accent-200';
+            return 'bg-green-100 text-green-800 border-green-200';
           case 'DEBUG':
             return 'bg-secondary-100 text-secondary-700 border-secondary-200';
           case 'TRACE':
@@ -100,7 +100,7 @@ const LogViewer = ({
           case 'WARN':
             return 'bg-warning-50 border-l-4 border-l-warning-500';
           case 'INFO':
-            return 'bg-accent-50 border-l-4 border-l-accent-500';
+            return 'bg-green-50 border-l-4 border-l-green-500';
           case 'DEBUG':
             return 'bg-secondary-50 border-l-4 border-l-secondary-400';
           case 'TRACE':

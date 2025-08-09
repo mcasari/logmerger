@@ -143,7 +143,7 @@ const RealFileLogViewer = () => {
         case 'WARN':
           return 'bg-yellow-50 border-l-4 border-l-yellow-400';
         case 'INFO':
-          return 'bg-blue-50 border-l-4 border-l-blue-400';
+          return 'bg-green-50 border-l-4 border-l-green-400';
         case 'DEBUG':
           return 'bg-purple-50 border-l-4 border-l-purple-400';
         case 'TRACE':
@@ -179,7 +179,7 @@ const RealFileLogViewer = () => {
                     px-2 py-0.5 rounded text-xs font-medium
                     ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
                       entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
-                      entry.level === 'INFO'? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                      entry.level === 'INFO'? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700'
                     }
                   `}
                 >
