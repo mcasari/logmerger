@@ -5,6 +5,7 @@ import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
+import LoadingSpinner, { PageSpinner, ButtonSpinner } from '../../components/ui/LoadingSpinner';
 
 const ITEM_HEIGHT = 80;
 
@@ -140,11 +141,21 @@ const UltraSimpleLogViewer = () => {
                 />
                 <Button
                   variant="primary"
-                  iconName="Upload"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading}
+                  className="flex items-center space-x-2"
                 >
-                  {isLoading ? 'Loading...' : 'Upload Log File'}
+                  {isLoading ? (
+                    <>
+                      <ButtonSpinner />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="Upload" size={16} />
+                      <span>Upload Log File</span>
+                    </>
+                  )}
                 </Button>
                 {selectedFile && (
                   <span className="text-sm text-text-secondary">
@@ -191,17 +202,14 @@ const UltraSimpleLogViewer = () => {
                   {Row}
                 </List>
               ) : (
-                <div className="p-8 text-center text-text-secondary">
+                <div className="relative h-full">
                   {isLoading ? (
-                    <>
-                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                      <p>Loading first 100 lines...</p>
-                    </>
+                    <PageSpinner text="Loading first 100 lines..." />
                   ) : (
-                    <>
+                    <div className="p-8 text-center text-text-secondary">
                       <Icon name="Upload" size={32} color="currentColor" className="mx-auto mb-2" />
                       <p>Upload a file to see instant preview</p>
-                    </>
+                    </div>
                   )}
                 </div>
               )}

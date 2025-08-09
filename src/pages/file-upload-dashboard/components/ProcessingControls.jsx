@@ -1,6 +1,7 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import { ButtonSpinner } from '../../../components/ui/LoadingSpinner';
 
 const ProcessingControls = ({ 
   files, 
@@ -131,14 +132,22 @@ const ProcessingControls = ({
           <Button
             variant="primary"
             size="lg"
-            iconName={getProcessButtonIcon()}
-            iconPosition="left"
             onClick={onProcessFiles}
             disabled={!canProcess}
             fullWidth
-            className={`${isProcessing ? 'animate-pulse' : ''}`}
+            className="flex items-center justify-center space-x-2"
           >
-            {getProcessButtonText()}
+            {isProcessing ? (
+              <>
+                <ButtonSpinner />
+                <span>{getProcessButtonText()}</span>
+              </>
+            ) : (
+              <>
+                <Icon name={getProcessButtonIcon()} size={16} />
+                <span>{getProcessButtonText()}</span>
+              </>
+            )}
           </Button>
 
           <div className="flex items-center space-x-3">

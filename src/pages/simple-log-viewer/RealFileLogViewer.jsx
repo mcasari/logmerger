@@ -6,6 +6,7 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { useLogParser } from '../../components/ChunkedFileReader';
+import LoadingSpinner, { PageSpinner, ButtonSpinner, ProgressSpinner } from '../../components/ui/LoadingSpinner';
 
 const CHUNK_SIZE = 500; // Smaller chunks for faster initial display
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
@@ -413,17 +414,31 @@ const RealFileLogViewer = () => {
                 />
                 <Button
                   variant="primary"
-                  iconName="Upload"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={isReading}
+                  disabled={isLoading}
+                  className="flex items-center space-x-2"
                 >
-                  Upload Log Files
+                  {isLoading ? (
+                    <>
+                      <ButtonSpinner />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="Upload" size={16} />
+                      <span>Upload Log Files</span>
+                    </>
+                  )}
                 </Button>
-                {isReading && (
-                  <div className="flex items-center space-x-2">
-                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                {isProcessing && fileProcessingProgress > 0 && (
+                  <div className="flex items-center space-x-3">
+                    <ProgressSpinner 
+                      progress={fileProcessingProgress} 
+                      size="sm" 
+                      showPercentage={false}
+                    />
                     <span className="text-sm text-text-secondary">
-                      Processing... {Math.round(progress)}%
+                      Processing... {Math.round(fileProcessingProgress)}%
                     </span>
                   </div>
                 )}
@@ -495,7 +510,10 @@ const RealFileLogViewer = () => {
                       <div>Matches: {filteredLogContent.length.toLocaleString()}</div>
                     )}
                     {isLoading && (
-                      <div className="text-primary">Loading more data...</div>
+                      <div className="flex items-center space-x-2 text-primary">
+                        <LoadingSpinner size="xs" variant="primary" />
+                        <span>Loading more data...</span>
+                      </div>
                     )}
                   </div>
                 </div>

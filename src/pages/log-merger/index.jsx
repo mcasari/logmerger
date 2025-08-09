@@ -5,6 +5,7 @@ import PatternConfiguration from './components/PatternConfiguration';
 import LogViewer from './components/LogViewer';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import { ButtonSpinner } from '../../components/ui/LoadingSpinner';
 
 const LogMerger = () => {
   const [files, setFiles] = useState([]);
@@ -314,12 +315,20 @@ const LogMerger = () => {
                     variant={files.length > 0 && !isProcessing ? "primary" : "secondary"}
                     disabled={files.length === 0 || isProcessing}
                     onClick={handleProcessFiles}
-                    iconName={isProcessing ? "Loader2" : "Play"}
-                    iconSize={16}
-                    className={isProcessing ? "animate-spin" : ""}
                     fullWidth
+                    className="flex items-center justify-center space-x-2"
                   >
-                    {isProcessing ? 'Processing...' : 'Process Files'}
+                    {isProcessing ? (
+                      <>
+                        <ButtonSpinner />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="Play" size={16} />
+                        <span>Process Files</span>
+                      </>
+                    )}
                   </Button>
                   
                   <Button
