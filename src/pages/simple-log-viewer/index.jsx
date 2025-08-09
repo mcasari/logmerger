@@ -6,9 +6,9 @@ import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
-const CHUNK_SIZE = 1000; // Number of lines to load per chunk
+const CHUNK_SIZE = 500; // Smaller chunks for faster loading
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
-const INITIAL_CHUNKS = 3; // Number of chunks to load initially
+const INITIAL_CHUNKS = 2; // Fewer initial chunks for faster start
 
 const SimpleLogViewer = () => {
   const navigate = useNavigate();

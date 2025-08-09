@@ -7,9 +7,10 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import { useChunkedFileReader, useLogParser } from '../../components/ChunkedFileReader';
 
-const CHUNK_SIZE = 1000; // Number of lines to display per chunk
+const CHUNK_SIZE = 500; // Smaller chunks for faster initial display
 const ITEM_HEIGHT = 80; // Height of each log entry in pixels
-const INITIAL_CHUNKS = 3; // Number of chunks to load initially
+const INITIAL_CHUNKS = 2; // Fewer initial chunks for faster start
+const PROGRESSIVE_CHUNK_SIZE = 250; // Size for progressive loading during file processing
 
 const RealFileLogViewer = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const RealFileLogViewer = () => {
     }
   }, []);
 
-  // Process a single file
+  // Process a single file with progressive rendering
   const processFile = useCallback(async (fileInfo) => {
     if (!fileInfo.file) return;
 
@@ -61,25 +62,47 @@ const RealFileLogViewer = () => {
 
     const allLines = [];
     let lineNumber = 1;
+    let displayedLines = 0;
 
     const onChunkProcessed = (lines, totalProcessed) => {
       const parsedLines = lines.map(line => parseLogLine(line, lineNumber++));
       allLines.push(...parsedLines);
+      
+      // Progressive rendering: show content as it's being processed
+      if (allLines.length - displayedLines >= PROGRESSIVE_CHUNK_SIZE || 
+          allLines.length >= INITIAL_CHUNKS * CHUNK_SIZE) {
+        
+        const newDisplayLines = Math.min(
+          allLines.length, 
+          displayedLines + PROGRESSIVE_CHUNK_SIZE
+        );
+        
+        setLogContent(allLines.slice(0, newDisplayLines));
+        setLoadedChunks(Math.ceil(newDisplayLines / CHUNK_SIZE));
+        displayedLines = newDisplayLines;
+      }
+      
       setFileProcessingProgress((totalProcessed / (fileInfo.size / 1024)) * 100);
     };
 
     const onComplete = () => {
       setTotalLines(allLines.length);
-      setLogContent(allLines.slice(0, INITIAL_CHUNKS * CHUNK_SIZE));
-      setLoadedChunks(INITIAL_CHUNKS);
+      setLogContent(allLines);
+      setLoadedChunks(Math.ceil(allLines.length / CHUNK_SIZE));
       setIsLoading(false);
       setFileProcessingProgress(0);
       
+      // Store processed data for future access
+      const processedFileInfo = {
+        ...fileInfo,
+        lineCount: allLines.length,
+        processed: true,
+        logContent: allLines
+      };
+      
       // Update file info
       setUploadedFiles(prev => prev.map(f => 
-        f.id === fileInfo.id 
-          ? { ...f, lineCount: allLines.length, processed: true }
-          : f
+        f.id === fileInfo.id ? processedFileInfo : f
       ));
     };
 
