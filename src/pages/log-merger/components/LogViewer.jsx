@@ -8,7 +8,9 @@ const LogViewer = ({
   searchQuery, 
   onSearchChange, 
   collapsedGroups, 
-  onGroupToggle 
+  onGroupToggle,
+  onScroll,
+  isLoadingMore
 }) => {
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
@@ -233,6 +235,7 @@ const LogViewer = ({
         className={`
           p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
           ${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')}
+          ${entry.isPreview ? 'border-l-4 border-l-blue-500' : ''}
         `}
       >
         <div className="flex items-start space-x-3">
@@ -266,6 +269,15 @@ const LogViewer = ({
             </div>
           )}
           
+          {/* Preview Indicator */}
+          {entry.isPreview && (
+            <div className="flex-shrink-0">
+              <div className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium border border-blue-200">
+                PREVIEW
+              </div>
+            </div>
+          )}
+          
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">
@@ -288,6 +300,11 @@ const LogViewer = ({
             </h3>
             <p className="text-sm text-text-secondary">
               {totalVisibleEntries.toLocaleString()} entries across {groups.length} groups
+              {isLoadingMore && (
+                <span className="ml-2 text-primary">
+                  • Loading more...
+                </span>
+              )}
             </p>
           </div>
           
@@ -329,7 +346,18 @@ const LogViewer = ({
       </div>
 
       {/* Dynamic Height Content */}
-      <div className="h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent">
+      <div 
+        className="h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent"
+        onScroll={(e) => {
+          const { scrollTop, scrollHeight, clientHeight } = e.target;
+          const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+          
+          // Call onScroll when user scrolls to 80% of content
+          if (scrollPercentage > 0.8 && onScroll) {
+            onScroll({ scrollOffset: scrollTop, scrollUpdateWasRequested: false });
+          }
+        }}
+      >
         {groups.length > 0 ? (
           <div>
             {groups.map((group) => {
@@ -349,6 +377,31 @@ const LogViewer = ({
                 </div>
               );
             })}
+            
+            {/* Loading More Indicator */}
+            {isLoadingMore && (
+              <div className="flex items-center justify-center py-4 border-t border-border">
+                <div className="flex items-center space-x-2 text-text-secondary">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span className="text-sm">Loading more entries...</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Load More Button */}
+            {!isLoadingMore && onScroll && (
+              <div className="flex items-center justify-center py-4 border-t border-border">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onScroll({ scrollOffset: 0, scrollUpdateWasRequested: true })}
+                  className="flex items-center space-x-2"
+                >
+                  <Icon name="Download" size={16} />
+                  <span>Load More Entries</span>
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">

@@ -1,11 +1,18 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import Header from '../../components/ui/Header';
 import FileUploadZone from './components/FileUploadZone';
 import PatternConfiguration from './components/PatternConfiguration';
 import LogViewer from './components/LogViewer';
+import PerformanceTest from './components/PerformanceTest';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { ButtonSpinner } from '../../components/ui/LoadingSpinner';
+
+// Performance configuration for lazy loading
+const CHUNK_SIZE = 256 * 1024; // 256KB chunks for processing
+const DISPLAY_CHUNK_SIZE = 100; // Show 100 lines per chunk
+const PREVIEW_BYTES = 4096; // 4KB for instant preview
+const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 
 const LogMerger = () => {
   const [files, setFiles] = useState([]);
@@ -17,6 +24,13 @@ const LogMerger = () => {
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processedFiles, setProcessedFiles] = useState(0);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(false);
+  const [fileChunks, setFileChunks] = useState(new Map()); // Store file chunks for lazy loading
+  const [loadedChunks, setLoadedChunks] = useState(0);
+  const abortControllerRef = useRef(null);
 
   // Handle file selection
   const handleFilesSelected = useCallback((selectedFiles) => {
@@ -39,58 +53,13 @@ const LogMerger = () => {
     setFiles(prevFiles => prevFiles.filter(f => f.id !== fileId));
     // Also remove entries from removed file
     setLogEntries(prevEntries => prevEntries.filter(entry => entry.fileId !== fileId));
+    // Remove file chunks
+    setFileChunks(prev => {
+      const newChunks = new Map(prev);
+      newChunks.delete(fileId);
+      return newChunks;
+    });
   }, []);
-
-  // Process uploaded files and merge log lines
-  const handleProcessFiles = useCallback(async () => {
-    if (files.length === 0) return;
-
-    setIsProcessing(true);
-    const allEntries = [];
-
-    try {
-      for (const file of files) {
-        const text = await file.file.text();
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        const fileEntries = lines.map((line, index) => ({
-          id: `${file.id}-${index}`,
-          fileId: file.id,
-          fileName: file.name,
-          lineNumber: index + 1,
-          content: line,
-          timestamp: extractTimestamp(line), // Keep original timestamp string or null
-          originalIndex: index,
-          sortableTimestamp: extractTimestamp(line) ? new Date(extractTimestamp(line)) : new Date(0) // For sorting only
-        }));
-
-        allEntries.push(...fileEntries);
-
-        // Update file as processed
-        setFiles(prevFiles => 
-          prevFiles.map(f => 
-            f.id === file.id ? { ...f, processed: true, lineCount: lines.length } : f
-          )
-        );
-      }
-
-      // Filter out entries without valid timestamps and sort by timestamp
-      const validEntries = allEntries.filter(entry => 
-        entry.timestamp && entry.sortableTimestamp && !isNaN(entry.sortableTimestamp.getTime())
-      );
-      
-      const invalidEntries = allEntries.length - validEntries.length;
-      setEntriesWithoutTimestamp(invalidEntries);
-      
-      validEntries.sort((a, b) => a.sortableTimestamp - b.sortableTimestamp);
-      setLogEntries(validEntries);
-
-    } catch (error) {
-      console.error('Error processing files:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [files]);
 
   // Extract timestamp from log line (preserve original format)
   const extractTimestamp = (line) => {
@@ -113,6 +82,273 @@ const LogMerger = () => {
     }
     return null; // Return null instead of generating random timestamps
   };
+
+  // Process a single file and store chunks for lazy loading
+  const processFileForLazyLoading = useCallback(async (file, fileInfo, previewLineCount, onProgress) => {
+    if (!file) return [];
+
+    try {
+      const reader = new FileReader();
+      let offset = 0;
+      let remainingBuffer = '';
+      let lineNumber = previewLineCount + 1; // Start after the preview lines
+      let totalProcessed = 0;
+      const allChunks = [];
+      let currentChunk = [];
+
+      const processChunk = async (chunk) => {
+        const text = remainingBuffer + chunk;
+        const lines = text.split('\n');
+        
+        // Keep the last line as it might be incomplete
+        remainingBuffer = lines.pop() || '';
+        
+        const validLines = lines.filter(line => line.trim().length > 0);
+        
+        for (const line of validLines) {
+          const entry = {
+            id: `${fileInfo.id}-${lineNumber}`,
+            fileId: fileInfo.id,
+            fileName: fileInfo.name,
+            lineNumber: lineNumber,
+            content: line,
+            timestamp: extractTimestamp(line),
+            originalIndex: lineNumber - 1,
+            sortableTimestamp: extractTimestamp(line) ? new Date(extractTimestamp(line)) : new Date(0)
+          };
+
+          currentChunk.push(entry);
+          lineNumber++;
+          totalProcessed++;
+
+          // When we have enough entries for a display chunk, store it
+          if (currentChunk.length >= DISPLAY_CHUNK_SIZE) {
+            allChunks.push([...currentChunk]);
+            currentChunk = [];
+            
+            // Update progress
+            const progress = Math.min((offset / file.size) * 100, 100);
+            onProgress?.(progress, totalProcessed);
+          }
+        }
+      };
+
+      const readNextChunk = async () => {
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
+        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        
+        if (chunk.size === 0) {
+          // Process any remaining buffer
+          if (remainingBuffer.trim()) {
+            await processChunk('');
+          }
+          
+          // Add any remaining entries in the current chunk
+          if (currentChunk.length > 0) {
+            allChunks.push([...currentChunk]);
+          }
+          
+          return allChunks;
+        }
+
+        return new Promise((resolve, reject) => {
+          reader.onload = async (e) => {
+            try {
+              const chunk = e.target.result;
+              await processChunk(chunk);
+              
+              offset += CHUNK_SIZE;
+              const progress = Math.min((offset / file.size) * 100, 100);
+              onProgress?.(progress, totalProcessed);
+              
+              // Continue reading next chunk
+              const result = await readNextChunk();
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          reader.onerror = () => {
+            reject(new Error('Failed to read file chunk'));
+          };
+
+          reader.readAsText(chunk);
+        });
+      };
+
+      return await readNextChunk();
+
+    } catch (error) {
+      console.error('Error processing file for lazy loading:', error);
+      return [];
+    }
+  }, []);
+
+  // Process uploaded files with lazy loading
+  const handleProcessFiles = useCallback(async () => {
+    if (files.length === 0) return;
+
+    setIsProcessing(true);
+    setProcessingProgress(0);
+    setProcessedFiles(0);
+    setLogEntries([]);
+    setEntriesWithoutTimestamp(0);
+    setLoadedChunks(0);
+    setHasMoreData(false);
+    
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
+    
+    const allFileChunks = new Map();
+    let processedFileCount = 0;
+
+    try {
+      for (const file of files) {
+        if (abortControllerRef.current?.signal.aborted) {
+          break;
+        }
+
+        // Show instant preview first (first 4KB)
+        const previewChunk = file.file.slice(0, PREVIEW_BYTES);
+        const previewText = await previewChunk.text();
+        const previewLines = previewText.split('\n').slice(0, 50); // First 50 lines
+        
+        const previewEntries = previewLines
+          .filter(line => line.trim())
+          .map((line, index) => ({
+            id: `${file.id}-preview-${index}`,
+            fileId: file.id,
+            fileName: file.name,
+            lineNumber: index + 1,
+            content: line,
+            timestamp: extractTimestamp(line),
+            originalIndex: index,
+            sortableTimestamp: extractTimestamp(line) ? new Date(extractTimestamp(line)) : new Date(0),
+            isPreview: true
+          }));
+
+        // Show preview immediately
+        setLogEntries(prev => [...prev, ...previewEntries]);
+
+        // Process the rest of the file and store chunks for lazy loading
+        console.log(`Processing file: ${file.name}, preview lines: ${previewEntries.length}`);
+        const fileChunks = await processFileForLazyLoading(
+          file.file.slice(PREVIEW_BYTES),
+          file,
+          previewEntries.length, // Pass the number of preview lines
+          (progress, totalProcessed) => {
+            setProcessingProgress(progress);
+          }
+        );
+        console.log(`File ${file.name} processed, chunks:`, fileChunks?.length || 0);
+
+        // Store chunks for this file (ensure it's an array)
+        allFileChunks.set(file.id, Array.isArray(fileChunks) ? fileChunks : []);
+        
+        // Calculate total line count from chunks
+        const totalLineCount = (Array.isArray(fileChunks) ? fileChunks.reduce((sum, chunk) => sum + chunk.length, 0) : 0) + previewEntries.length;
+        
+        processedFileCount++;
+        setProcessedFiles(processedFileCount);
+        
+        // Update file as processed
+        setFiles(prevFiles => 
+          prevFiles.map(f => 
+            f.id === file.id ? { ...f, processed: true, lineCount: totalLineCount } : f
+          )
+        );
+
+        // Small delay between files to keep UI responsive
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+
+      // Store all file chunks for lazy loading
+      setFileChunks(allFileChunks);
+      
+      // Set flag to indicate there's more data to load
+      const totalChunks = Array.from(allFileChunks.values()).reduce((sum, chunks) => sum + chunks.length, 0);
+      setHasMoreData(totalChunks > 0);
+
+    } catch (error) {
+      console.error('Error processing files:', error);
+    } finally {
+      setIsProcessing(false);
+      setProcessingProgress(0);
+      abortControllerRef.current = null;
+    }
+  }, [files, processFileForLazyLoading]);
+
+  // Load next chunk when user scrolls
+  const loadNextChunk = useCallback(async () => {
+    if (isLoadingMore || !hasMoreData) return;
+
+    setIsLoadingMore(true);
+
+    try {
+      const allChunks = [];
+      
+      // Get next chunk from each file
+      for (const [fileId, chunks] of fileChunks.entries()) {
+        if (chunks.length > loadedChunks) {
+          allChunks.push(...chunks[loadedChunks]);
+        }
+      }
+
+      if (allChunks.length > 0) {
+        // Add new entries to the list
+        setLogEntries(prev => {
+          const newEntries = [...prev, ...allChunks];
+          
+          // Sort only the valid entries with timestamps
+          const validEntries = newEntries.filter(entry => 
+            entry.timestamp && entry.sortableTimestamp && !isNaN(entry.sortableTimestamp.getTime())
+          );
+          
+          const invalidEntries = newEntries.length - validEntries.length;
+          setEntriesWithoutTimestamp(invalidEntries);
+          
+          // Sort by timestamp
+          validEntries.sort((a, b) => a.sortableTimestamp - b.sortableTimestamp);
+          
+          return validEntries;
+        });
+
+        const newLoadedChunks = loadedChunks + 1;
+        setLoadedChunks(newLoadedChunks);
+        
+        // Check if we have more chunks to load
+        const maxChunks = Math.max(...Array.from(fileChunks.values()).map(chunks => chunks.length));
+        setHasMoreData(newLoadedChunks < maxChunks);
+      }
+    } catch (error) {
+      console.error('Error loading next chunk:', error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMoreData, fileChunks, loadedChunks]);
+
+  // Handle scroll to load more data
+  const handleScroll = useCallback(({ scrollOffset, scrollUpdateWasRequested }) => {
+    if (scrollUpdateWasRequested) return;
+    
+    // Load more when user scrolls to 80% of content
+    if (scrollOffset > 0 && hasMoreData && !isLoadingMore) {
+      loadNextChunk();
+    }
+  }, [hasMoreData, isLoadingMore, loadNextChunk]);
+
+  // Cancel processing
+  const handleCancelProcessing = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      setIsProcessing(false);
+      setProcessingProgress(0);
+    }
+  }, []);
 
   // Group log entries based on the selected pattern
   const groupedEntries = useMemo(() => {
@@ -331,6 +567,34 @@ const LogMerger = () => {
                     )}
                   </Button>
                   
+                  {isProcessing && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-text-secondary">
+                          <span>Progress: {Math.round(processingProgress)}%</span>
+                          <span>Files: {processedFiles}/{files.length}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${processingProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        iconName="X"
+                        iconSize={16}
+                        onClick={handleCancelProcessing}
+                        fullWidth
+                        className="flex items-center justify-center space-x-2"
+                      >
+                        Cancel Processing
+                      </Button>
+                    </>
+                  )}
+                  
                   <Button
                     variant="outline"
                     iconName="Download"
@@ -365,6 +629,9 @@ const LogMerger = () => {
                   </Button>
                 </div>
               </div>
+              
+              {/* Performance Test Component */}
+              <PerformanceTest />
             </div>
           </div>
 
@@ -377,6 +644,8 @@ const LogMerger = () => {
                 onSearchChange={setSearchQuery}
                 collapsedGroups={collapsedGroups}
                 onGroupToggle={handleGroupToggle}
+                onScroll={handleScroll}
+                isLoadingMore={isLoadingMore}
               />
             </div>
           )}
