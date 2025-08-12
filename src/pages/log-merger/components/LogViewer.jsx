@@ -12,6 +12,8 @@ const LogViewer = ({
   onScroll,
   isLoadingMore
 }) => {
+  const [currentRecordIndex, setCurrentRecordIndex] = useState(0);
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
     if (groupName.includes('WARN')) return '#f59e0b';
@@ -50,6 +52,43 @@ const LogViewer = ({
     // Fallback for any unexpected cases
     return String(timestamp);
   };
+
+  // Navigation functions
+  const navigateToPreviousRecord = () => {
+    if (groups.length === 0) return;
+    
+    let newGroupIndex = currentGroupIndex;
+    let newRecordIndex = currentRecordIndex - 1;
+    
+    // If we're at the first record of the current group, go to previous group
+    if (newRecordIndex < 0) {
+      newGroupIndex = Math.max(0, currentGroupIndex - 1);
+      newRecordIndex = groups[newGroupIndex]?.entries.length - 1 || 0;
+    }
+    
+    setCurrentGroupIndex(newGroupIndex);
+    setCurrentRecordIndex(newRecordIndex);
+  };
+
+  const navigateToNextRecord = () => {
+    if (groups.length === 0) return;
+    
+    let newGroupIndex = currentGroupIndex;
+    let newRecordIndex = currentRecordIndex + 1;
+    
+    // If we're at the last record of the current group, go to next group
+    if (newRecordIndex >= groups[currentGroupIndex]?.entries.length) {
+      newGroupIndex = Math.min(groups.length - 1, currentGroupIndex + 1);
+      newRecordIndex = 0;
+    }
+    
+    setCurrentGroupIndex(newGroupIndex);
+    setCurrentRecordIndex(newRecordIndex);
+  };
+
+  // Check if navigation buttons should be disabled
+  const isPreviousDisabled = groups.length === 0 || (currentGroupIndex === 0 && currentRecordIndex === 0);
+  const isNextDisabled = groups.length === 0 || (currentGroupIndex === groups.length - 1 && currentRecordIndex === groups[currentGroupIndex]?.entries.length - 1);
 
   const getLogLevelColor = (content) => {
     // Try multiple patterns for log level detection
@@ -213,6 +252,45 @@ const LogViewer = ({
           </div>
           
           <div className="flex items-center space-x-2">
+            {/* Navigation Buttons */}
+            <div className="flex items-center space-x-1 mr-4">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateToPreviousRecord();
+                }}
+                disabled={isPreviousDisabled}
+                className={`
+                  p-1 rounded transition-colors duration-150
+                  ${isPreviousDisabled 
+                    ? 'text-text-muted cursor-not-allowed' 
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }
+                `}
+                title="Previous Record"
+              >
+                <Icon name="ChevronLeft" size={16} />
+              </button>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateToNextRecord();
+                }}
+                disabled={isNextDisabled}
+                className={`
+                  p-1 rounded transition-colors duration-150
+                  ${isNextDisabled 
+                    ? 'text-text-muted cursor-not-allowed' 
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }
+                `}
+                title="Next Record"
+              >
+                <Icon name="ChevronRight" size={16} />
+              </button>
+            </div>
+            
             <span className="text-sm text-text-muted">
               {isCollapsed ? 'Show' : 'Hide'}
             </span>
@@ -223,19 +301,22 @@ const LogViewer = ({
   };
 
   // Render log entry
-  const renderLogEntry = (entry, index) => {
+  const renderLogEntry = (entry, index, groupIndex) => {
     const isEven = index % 2 === 0;
     const logLevel = extractLogLevel(entry.content);
     const logLevelColor = getLogLevelColor(entry.content);
     const logLevelBackground = getLogLevelBackgroundColor(entry.content);
+    const isCurrentRecord = groupIndex === currentGroupIndex && index === currentRecordIndex;
     
     return (
       <div
         key={entry.id}
         className={`
           p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
-          ${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')}
-          ${entry.isPreview ? 'border-l-4 border-l-blue-500' : ''}
+          ${isCurrentRecord 
+            ? 'bg-blue-100 border-l-4 border-l-blue-500 shadow-sm' 
+            : `${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')} ${entry.isPreview ? 'border-l-4 border-l-blue-500' : ''}`
+          }
         `}
       >
         <div className="flex items-start space-x-3">
@@ -360,7 +441,7 @@ const LogViewer = ({
       >
         {groups.length > 0 ? (
           <div>
-            {groups.map((group) => {
+            {groups.map((group, groupIndex) => {
               const isCollapsed = collapsedGroups.has(group.id);
               
               return (
@@ -370,7 +451,7 @@ const LogViewer = ({
                   {!isCollapsed && (
                     <div>
                       {group.entries.map((entry, index) => 
-                        renderLogEntry(entry, index)
+                        renderLogEntry(entry, index, groupIndex)
                       )}
                     </div>
                   )}
