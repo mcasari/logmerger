@@ -283,45 +283,6 @@ const LogViewer = ({
           </div>
           
           <div className="flex items-center space-x-2">
-            {/* Navigation Buttons */}
-            <div className="flex items-center space-x-1 mr-4">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateToPreviousRecord();
-                }}
-                disabled={isPreviousDisabled}
-                className={`
-                  p-1 rounded transition-colors duration-150
-                  ${isPreviousDisabled 
-                    ? 'text-text-muted cursor-not-allowed' 
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }
-                `}
-                title="Previous Record"
-              >
-                <Icon name="ChevronLeft" size={16} />
-              </button>
-              
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateToNextRecord();
-                }}
-                disabled={isNextDisabled}
-                className={`
-                  p-1 rounded transition-colors duration-150
-                  ${isNextDisabled 
-                    ? 'text-text-muted cursor-not-allowed' 
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }
-                `}
-                title="Next Record"
-              >
-                <Icon name="ChevronRight" size={16} />
-              </button>
-            </div>
-            
             <span className="text-sm text-text-muted">
               {isCollapsed ? 'Show' : 'Hide'}
             </span>
@@ -422,6 +383,39 @@ const LogViewer = ({
           </div>
           
           <div className="flex items-center space-x-3">
+            {/* Navigation Buttons */}
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={navigateToPreviousRecord}
+                disabled={isPreviousDisabled}
+                className={`
+                  p-2 rounded transition-colors duration-150
+                  ${isPreviousDisabled 
+                    ? 'text-text-muted cursor-not-allowed' 
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }
+                `}
+                title="Previous Record"
+              >
+                <Icon name="ChevronLeft" size={16} />
+              </button>
+              
+              <button
+                onClick={navigateToNextRecord}
+                disabled={isNextDisabled}
+                className={`
+                  p-2 rounded transition-colors duration-150
+                  ${isNextDisabled 
+                    ? 'text-text-muted cursor-not-allowed' 
+                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
+                  }
+                `}
+                title="Next Record"
+              >
+                <Icon name="ChevronRight" size={16} />
+              </button>
+            </div>
+            
             <div className="w-64">
               <Input
                 placeholder="Search log entries..."
