@@ -3,7 +3,6 @@ import Header from '../../components/ui/Header';
 import FileUploadZone from './components/FileUploadZone';
 import PatternConfiguration from './components/PatternConfiguration';
 import LogViewer from './components/LogViewer';
-import PerformanceTest from './components/PerformanceTest';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { ButtonSpinner } from '../../components/ui/LoadingSpinner';
@@ -630,8 +629,7 @@ const LogMerger = () => {
                 </div>
               </div>
               
-              {/* Performance Test Component */}
-              <PerformanceTest />
+
             </div>
           </div>
 
