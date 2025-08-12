@@ -314,7 +314,7 @@ const LogViewer = ({
         className={`
           p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
           ${isCurrentRecord 
-            ? 'bg-blue-100 border-l-4 border-l-blue-500 shadow-sm' 
+            ? 'bg-blue-200 border-l-4 border-l-blue-600 shadow-md' 
             : `${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')} ${entry.isPreview ? 'border-l-4 border-l-blue-500' : ''}`
           }
         `}
