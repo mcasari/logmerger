@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import Icon from '../../../components/AppIcon';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
@@ -14,6 +14,7 @@ const LogViewer = ({
 }) => {
   const [currentRecordIndex, setCurrentRecordIndex] = useState(0);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const scrollContainerRef = useRef(null);
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
     if (groupName.includes('WARN')) return '#f59e0b';
@@ -53,6 +54,30 @@ const LogViewer = ({
     return String(timestamp);
   };
 
+  // Scroll to the selected record
+  const scrollToSelectedRecord = useCallback(() => {
+    if (!scrollContainerRef.current) return;
+    
+    // Find the selected record element
+    const selectedElement = scrollContainerRef.current.querySelector(`[data-record-id="${currentGroupIndex}-${currentRecordIndex}"]`);
+    
+    if (selectedElement) {
+      // Calculate the scroll position to center the element
+      const containerRect = scrollContainerRef.current.getBoundingClientRect();
+      const elementRect = selectedElement.getBoundingClientRect();
+      const scrollTop = scrollContainerRef.current.scrollTop;
+      
+      // Calculate the target scroll position to center the element
+      const targetScrollTop = scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
+      
+      // Smooth scroll to the target position
+      scrollContainerRef.current.scrollTo({
+        top: targetScrollTop,
+        behavior: 'smooth'
+      });
+    }
+  }, [currentGroupIndex, currentRecordIndex]);
+
   // Navigation functions
   const navigateToPreviousRecord = () => {
     if (groups.length === 0) return;
@@ -68,6 +93,9 @@ const LogViewer = ({
     
     setCurrentGroupIndex(newGroupIndex);
     setCurrentRecordIndex(newRecordIndex);
+    
+    // Scroll to the new selection after state update
+    setTimeout(() => scrollToSelectedRecord(), 0);
   };
 
   const navigateToNextRecord = () => {
@@ -84,6 +112,9 @@ const LogViewer = ({
     
     setCurrentGroupIndex(newGroupIndex);
     setCurrentRecordIndex(newRecordIndex);
+    
+    // Scroll to the new selection after state update
+    setTimeout(() => scrollToSelectedRecord(), 0);
   };
 
   // Check if navigation buttons should be disabled
@@ -311,6 +342,7 @@ const LogViewer = ({
     return (
       <div
         key={entry.id}
+        data-record-id={`${groupIndex}-${index}`}
         className={`
           p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
           ${isCurrentRecord 
@@ -428,6 +460,7 @@ const LogViewer = ({
 
       {/* Dynamic Height Content */}
       <div 
+        ref={scrollContainerRef}
         className="h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent"
         onScroll={(e) => {
           const { scrollTop, scrollHeight, clientHeight } = e.target;
