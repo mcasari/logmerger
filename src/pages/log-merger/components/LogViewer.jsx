@@ -385,35 +385,25 @@ const LogViewer = ({
           <div className="flex items-center space-x-3">
             {/* Navigation Buttons */}
             <div className="flex items-center space-x-1">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
+                iconName="ChevronLeft"
+                iconSize={16}
                 onClick={navigateToPreviousRecord}
                 disabled={isPreviousDisabled}
-                className={`
-                  p-2 rounded transition-colors duration-150
-                  ${isPreviousDisabled 
-                    ? 'text-text-muted cursor-not-allowed' 
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }
-                `}
                 title="Previous Record"
-              >
-                <Icon name="ChevronLeft" size={16} />
-              </button>
+              />
               
-              <button
+              <Button
+                variant="outline"
+                size="sm"
+                iconName="ChevronRight"
+                iconSize={16}
                 onClick={navigateToNextRecord}
                 disabled={isNextDisabled}
-                className={`
-                  p-2 rounded transition-colors duration-150
-                  ${isNextDisabled 
-                    ? 'text-text-muted cursor-not-allowed' 
-                    : 'text-text-secondary hover:text-text-primary hover:bg-surface-hover'
-                  }
-                `}
                 title="Next Record"
-              >
-                <Icon name="ChevronRight" size={16} />
-              </button>
+              />
             </div>
             
             <div className="w-64">
