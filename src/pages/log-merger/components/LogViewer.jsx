@@ -14,7 +14,48 @@ const LogViewer = ({
 }) => {
   const [currentRecordIndex, setCurrentRecordIndex] = useState(0);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
   const scrollContainerRef = useRef(null);
+
+    // Auto-scroll when current record changes
+  useEffect(() => {
+    if (groups.length > 0 && !isNavigating) {
+      const scrollToRecord = () => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        
+        console.log(`Looking for record: group ${currentGroupIndex}, record ${currentRecordIndex}`);
+        
+        // Find the selected record element
+        const selectedElement = container.querySelector(`[data-record-id="${currentGroupIndex}-${currentRecordIndex}"]`);
+        
+        if (selectedElement) {
+          console.log('Found element, scrolling to center...');
+          
+          // Use scrollIntoView with center alignment
+          selectedElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'nearest'
+          });
+          
+          // Add visual feedback
+          selectedElement.style.animation = 'pulse 0.5s ease-in-out';
+          setTimeout(() => {
+            selectedElement.style.animation = '';
+          }, 500);
+          
+        } else {
+          console.log('Element not found, retrying...');
+          // Retry after a short delay
+          setTimeout(scrollToRecord, 100);
+        }
+      };
+      
+      // Start the scroll process
+      setTimeout(scrollToRecord, 100);
+    }
+  }, [currentGroupIndex, currentRecordIndex, groups, collapsedGroups, isNavigating]);
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
     if (groupName.includes('WARN')) return '#f59e0b';
@@ -54,33 +95,13 @@ const LogViewer = ({
     return String(timestamp);
   };
 
-  // Scroll to the selected record
-  const scrollToSelectedRecord = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-    
-    // Find the selected record element
-    const selectedElement = scrollContainerRef.current.querySelector(`[data-record-id="${currentGroupIndex}-${currentRecordIndex}"]`);
-    
-    if (selectedElement) {
-      // Calculate the scroll position to center the element
-      const containerRect = scrollContainerRef.current.getBoundingClientRect();
-      const elementRect = selectedElement.getBoundingClientRect();
-      const scrollTop = scrollContainerRef.current.scrollTop;
-      
-      // Calculate the target scroll position to center the element
-      const targetScrollTop = scrollTop + elementRect.top - containerRect.top - (containerRect.height / 2) + (elementRect.height / 2);
-      
-      // Smooth scroll to the target position
-      scrollContainerRef.current.scrollTo({
-        top: targetScrollTop,
-        behavior: 'smooth'
-      });
-    }
-  }, [currentGroupIndex, currentRecordIndex]);
+
 
   // Navigation functions
   const navigateToPreviousRecord = () => {
-    if (groups.length === 0) return;
+    if (groups.length === 0 || isNavigating) return;
+    
+    setIsNavigating(true);
     
     let newGroupIndex = currentGroupIndex;
     let newRecordIndex = currentRecordIndex - 1;
@@ -91,15 +112,28 @@ const LogViewer = ({
       newRecordIndex = groups[newGroupIndex]?.entries.length - 1 || 0;
     }
     
-    setCurrentGroupIndex(newGroupIndex);
-    setCurrentRecordIndex(newRecordIndex);
-    
-    // Scroll to the new selection after state update
-    setTimeout(() => scrollToSelectedRecord(), 0);
+    // Ensure the target group is expanded first
+    const targetGroup = groups[newGroupIndex];
+    if (targetGroup && collapsedGroups.has(targetGroup.id)) {
+      console.log(`Expanding group ${targetGroup.id} before navigation`);
+      onGroupToggle(targetGroup.id);
+      // Wait a bit for the group to expand
+      setTimeout(() => {
+        setCurrentGroupIndex(newGroupIndex);
+        setCurrentRecordIndex(newRecordIndex);
+        setIsNavigating(false);
+      }, 200);
+    } else {
+      setCurrentGroupIndex(newGroupIndex);
+      setCurrentRecordIndex(newRecordIndex);
+      setIsNavigating(false);
+    }
   };
 
   const navigateToNextRecord = () => {
-    if (groups.length === 0) return;
+    if (groups.length === 0 || isNavigating) return;
+    
+    setIsNavigating(true);
     
     let newGroupIndex = currentGroupIndex;
     let newRecordIndex = currentRecordIndex + 1;
@@ -110,11 +144,22 @@ const LogViewer = ({
       newRecordIndex = 0;
     }
     
-    setCurrentGroupIndex(newGroupIndex);
-    setCurrentRecordIndex(newRecordIndex);
-    
-    // Scroll to the new selection after state update
-    setTimeout(() => scrollToSelectedRecord(), 0);
+    // Ensure the target group is expanded first
+    const targetGroup = groups[newGroupIndex];
+    if (targetGroup && collapsedGroups.has(targetGroup.id)) {
+      console.log(`Expanding group ${targetGroup.id} before navigation`);
+      onGroupToggle(targetGroup.id);
+      // Wait a bit for the group to expand
+      setTimeout(() => {
+        setCurrentGroupIndex(newGroupIndex);
+        setCurrentRecordIndex(newRecordIndex);
+        setIsNavigating(false);
+      }, 200);
+    } else {
+      setCurrentGroupIndex(newGroupIndex);
+      setCurrentRecordIndex(newRecordIndex);
+      setIsNavigating(false);
+    }
   };
 
   // Check if navigation buttons should be disabled
@@ -365,6 +410,13 @@ const LogViewer = ({
 
   return (
     <div className="bg-surface border border-border rounded-lg">
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
       {/* Header */}
       <div className="p-6 border-b border-border">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
