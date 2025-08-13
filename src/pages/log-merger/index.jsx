@@ -502,18 +502,6 @@ const LogMerger = () => {
                     </div>
                   </div>
                 </div>
-                
-                {entriesWithoutTimestamp > 0 && (
-                  <div className="bg-surface border border-border rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <Icon name="Clock" size={20} color="var(--color-error)" />
-                      <div>
-                        <div className="text-2xl font-bold text-text-primary">{entriesWithoutTimestamp.toLocaleString()}</div>
-                        <div className="text-sm text-text-secondary">No Timestamp</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
