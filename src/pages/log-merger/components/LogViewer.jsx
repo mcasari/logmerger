@@ -16,10 +16,17 @@ const LogViewer = ({
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
   const scrollContainerRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
+  const retryCountRef = useRef(0);
 
-    // Auto-scroll when current record changes
+  // Auto-scroll when current record changes
   useEffect(() => {
     if (groups.length > 0 && !isNavigating) {
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
       const scrollToRecord = () => {
         const container = scrollContainerRef.current;
         if (!container) return;
@@ -32,29 +39,63 @@ const LogViewer = ({
         if (selectedElement) {
           console.log('Found element, scrolling to center...');
           
-          // Use scrollIntoView with center alignment
-          selectedElement.scrollIntoView({
-            behavior: 'smooth',
-            block: 'center',
-            inline: 'nearest'
-          });
+          // Reset retry count on success
+          retryCountRef.current = 0;
           
-          // Add visual feedback
-          selectedElement.style.animation = 'pulse 0.5s ease-in-out';
-          setTimeout(() => {
-            selectedElement.style.animation = '';
-          }, 500);
+          // Use scrollIntoView with instant behavior to reduce interference
+          try {
+            selectedElement.scrollIntoView({
+              behavior: 'instant', // Changed from 'smooth' to 'instant'
+              block: 'center',
+              inline: 'nearest'
+            });
+          } catch (error) {
+            console.warn('Scroll error (likely Chrome extension interference):', error);
+            // Fallback to simple scroll
+            try {
+              selectedElement.scrollIntoView();
+            } catch (fallbackError) {
+              console.warn('Fallback scroll also failed:', fallbackError);
+            }
+          }
+          
+          // Add visual feedback with reduced animation duration
+          try {
+            selectedElement.style.animation = 'pulse 0.3s ease-in-out';
+            setTimeout(() => {
+              if (selectedElement.style) {
+                selectedElement.style.animation = '';
+              }
+            }, 300);
+          } catch (animationError) {
+            console.warn('Animation error:', animationError);
+          }
           
         } else {
           console.log('Element not found, retrying...');
-          // Retry after a short delay
-          setTimeout(scrollToRecord, 100);
+          retryCountRef.current++;
+          
+          // Limit retries to prevent infinite loops
+          if (retryCountRef.current < 5) {
+            // Increase delay between retries to reduce interference
+            scrollTimeoutRef.current = setTimeout(scrollToRecord, 200);
+          } else {
+            console.log('Max retries reached, stopping scroll attempts');
+            retryCountRef.current = 0;
+          }
         }
       };
       
-      // Start the scroll process
-      setTimeout(scrollToRecord, 100);
+      // Start the scroll process with a longer initial delay
+      scrollTimeoutRef.current = setTimeout(scrollToRecord, 150);
     }
+    
+    // Cleanup function
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
   }, [currentGroupIndex, currentRecordIndex, groups, collapsedGroups, isNavigating]);
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
