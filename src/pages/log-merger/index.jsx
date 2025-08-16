@@ -478,7 +478,7 @@ const LogMerger = () => {
                     <Icon name="List" size={20} color="var(--color-accent)" />
                     <div>
                       <div className="text-2xl font-bold text-text-primary">{totalEntries.toLocaleString()}</div>
-                      <div className="text-sm text-text-secondary">Total Lines</div>
+                      <div className="text-sm text-text-secondary">Total Lines Processed</div>
                     </div>
                   </div>
                 </div>
