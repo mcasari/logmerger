@@ -15,6 +15,7 @@ const ContentTable = ({
   const [expandedEntries, setExpandedEntries] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
 
   const filteredAndSortedEntries = useMemo(() => {
     let filtered = entries;
@@ -118,13 +119,172 @@ const ContentTable = ({
     return `${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
-  const EntryRow = useCallback(({ index, style }) => {
-    const entry = filteredAndSortedEntries[index];
-    const isExpanded = expandedEntries.has(entry.id);
-    const isSelected = selectedEntries.includes(entry.id);
+  const getLogLevelColor = (content) => {
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i
+    ];
+    
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        switch (level.toUpperCase()) {
+          case 'ERROR':
+            return 'bg-error-100 text-error-800';
+          case 'WARN':
+            return 'bg-warning-100 text-warning-800';
+          case 'INFO':
+            return 'bg-green-100 text-green-800';
+          case 'DEBUG':
+            return 'bg-secondary-100 text-secondary-800';
+          case 'TRACE':
+            return 'bg-secondary-100 text-secondary-800';
+          default:
+            continue;
+        }
+      }
+    }
+    return 'bg-gray-100 text-gray-800';
+  };
 
+  const extractLogLevel = (content) => {
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i
+    ];
+    
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        return level.toUpperCase();
+      }
+    }
+    return null;
+  };
+
+  // Compact Row Component
+  const CompactRow = useCallback(({ entry, isExpanded, isSelected }) => {
+    const logLevel = extractLogLevel(entry.content);
+    const logLevelColor = getLogLevelColor(entry.content);
+    
     return (
-      <div style={style} className="border-b border-border">
+      <div className="border-b border-border">
+        {/* Compact Row */}
+        <div className="flex items-center px-4 py-2 hover:bg-surface-hover transition-colors duration-150">
+          {/* Selection Checkbox */}
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={(e) => handleEntrySelection(entry, e.target.checked)}
+            className="mr-3 rounded border-border focus:ring-primary"
+          />
+          
+          {/* Toggle Button */}
+          <button
+            onClick={() => toggleEntryExpansion(entry.id)}
+            className="mr-3 p-1 rounded hover:bg-surface-hover"
+          >
+            <Icon 
+              name={isExpanded ? "ChevronDown" : "ChevronRight"} 
+              size={14} 
+              color="var(--color-text-muted)"
+            />
+          </button>
+          
+          {/* Timestamp (Compact) */}
+          <div className="w-24 text-xs text-text-secondary font-mono">
+            {formatTimestamp(entry.timestamp)}
+          </div>
+          
+          {/* Source File (Compact) */}
+          <div className="w-32 mx-2">
+            <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${getSourceFileColor(entry.sourceFile)}`}>
+              {entry.sourceFile.split('/').pop()}
+            </span>
+          </div>
+          
+          {/* Line Number (Compact) */}
+          <div className="w-12 text-xs text-text-muted font-mono">
+            {entry.lineNumber}
+          </div>
+          
+          {/* Log Level Badge (Compact) */}
+          {logLevel && (
+            <div className="w-16 mx-2">
+              <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${logLevelColor}`}>
+                {logLevel}
+              </span>
+            </div>
+          )}
+          
+          {/* Content Preview (Compact) */}
+          <div className="flex-1 mx-2">
+            <div className="text-xs text-text-primary truncate">
+              {entry.content.length > 100 ? `${entry.content.substring(0, 100)}...` : entry.content}
+            </div>
+          </div>
+        </div>
+        
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="px-4 pb-4 bg-surface">
+            <div className="bg-background border border-border rounded-md p-4">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <span className="font-medium text-text-secondary">Source:</span>
+                  <span className="ml-2 text-text-primary">{entry.sourceFile}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Line:</span>
+                  <span className="ml-2 text-text-primary font-mono">{entry.lineNumber}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Timestamp:</span>
+                  <span className="ml-2 text-text-primary font-mono">
+                    {getOriginalTimestamp(entry.timestamp)}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Level:</span>
+                  <span className="ml-2 text-text-primary">{logLevel || 'N/A'}</span>
+                </div>
+              </div>
+              
+              <div className="mb-3">
+                <span className="font-medium text-text-secondary">Full Content:</span>
+              </div>
+              <div className="bg-slate-50 border border-border rounded p-3 font-mono text-sm text-text-primary whitespace-pre-wrap">
+                {entry.fullContent || entry.content}
+              </div>
+              
+              {entry.metadata && (
+                <div className="mt-3">
+                  <span className="font-medium text-text-secondary">Metadata:</span>
+                  <div className="mt-1 bg-slate-50 border border-border rounded p-2 text-xs">
+                    <pre className="text-text-muted">{JSON.stringify(entry.metadata, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }, [handleEntrySelection, toggleEntryExpansion]);
+
+  // Detailed Row Component (Original)
+  const DetailedRow = useCallback(({ entry, isExpanded, isSelected }) => {
+    const logLevel = extractLogLevel(entry.content);
+    const logLevelColor = getLogLevelColor(entry.content);
+    
+    return (
+      <div className="border-b border-border">
         <div className="flex items-center px-4 py-3 hover:bg-surface-hover transition-colors duration-150">
           {/* Selection Checkbox */}
           <input
@@ -174,12 +334,9 @@ const ContentTable = ({
           <div className="w-20">
             <span className={`
               inline-block px-2 py-1 rounded-full text-xs font-medium
-              ${entry.level === 'ERROR' ? 'bg-error-100 text-error-800' :
-                entry.level === 'WARN' ? 'bg-warning-100 text-warning-800' :
-                entry.level === 'INFO'? 'bg-green-100 text-green-800' : 'bg-secondary-100 text-secondary-800'
-              }
+              ${logLevel ? logLevelColor : 'bg-secondary-100 text-secondary-800'}
             `}>
-              {entry.level}
+              {logLevel || 'N/A'}
             </span>
           </div>
         </div>
@@ -205,7 +362,7 @@ const ContentTable = ({
                 </div>
                 <div>
                   <span className="font-medium text-text-secondary">Level:</span>
-                  <span className="ml-2 text-text-primary">{entry.level}</span>
+                  <span className="ml-2 text-text-primary">{logLevel || 'N/A'}</span>
                 </div>
               </div>
               
@@ -229,7 +386,23 @@ const ContentTable = ({
         )}
       </div>
     );
-  }, [filteredAndSortedEntries, expandedEntries, selectedEntries, handleEntrySelection]);
+  }, [handleEntrySelection, toggleEntryExpansion]);
+
+  const EntryRow = useCallback(({ index, style }) => {
+    const entry = filteredAndSortedEntries[index];
+    const isExpanded = expandedEntries.has(entry.id);
+    const isSelected = selectedEntries.includes(entry.id);
+
+    return (
+      <div style={style}>
+        {viewMode === 'compact' ? (
+          <CompactRow entry={entry} isExpanded={isExpanded} isSelected={isSelected} />
+        ) : (
+          <DetailedRow entry={entry} isExpanded={isExpanded} isSelected={isSelected} />
+        )}
+      </div>
+    );
+  }, [filteredAndSortedEntries, expandedEntries, selectedEntries, viewMode, CompactRow, DetailedRow]);
 
   if (!group) {
     return (
@@ -257,6 +430,30 @@ const ContentTable = ({
             </div>
             
             <div className="flex items-center space-x-2">
+              {/* View Mode Toggle */}
+              <div className="flex items-center space-x-1 bg-surface rounded-md p-1">
+                <button
+                  onClick={() => setViewMode('compact')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    viewMode === 'compact' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Compact
+                </button>
+                <button
+                  onClick={() => setViewMode('detailed')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    viewMode === 'detailed' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Detailed
+                </button>
+              </div>
+              
               <Button
                 variant="secondary"
                 size="sm"
@@ -344,7 +541,9 @@ const ContentTable = ({
           
           <button
             onClick={() => handleSort('timestamp')}
-            className="w-32 text-left flex items-center space-x-1 hover:text-text-primary"
+            className={`text-left flex items-center space-x-1 hover:text-text-primary ${
+              viewMode === 'compact' ? 'w-24' : 'w-32'
+            }`}
           >
             <span>Timestamp</span>
             {sortConfig.key === 'timestamp' && (
@@ -358,7 +557,9 @@ const ContentTable = ({
           
           <button
             onClick={() => handleSort('sourceFile')}
-            className="w-40 mx-4 text-left flex items-center space-x-1 hover:text-text-primary"
+            className={`mx-4 text-left flex items-center space-x-1 hover:text-text-primary ${
+              viewMode === 'compact' ? 'w-32' : 'w-40'
+            }`}
           >
             <span>Source File</span>
             {sortConfig.key === 'sourceFile' && (
@@ -372,7 +573,9 @@ const ContentTable = ({
           
           <button
             onClick={() => handleSort('lineNumber')}
-            className="w-16 text-left flex items-center space-x-1 hover:text-text-primary"
+            className={`text-left flex items-center space-x-1 hover:text-text-primary ${
+              viewMode === 'compact' ? 'w-12' : 'w-16'
+            }`}
           >
             <span>Line</span>
             {sortConfig.key === 'lineNumber' && (
@@ -384,8 +587,11 @@ const ContentTable = ({
             )}
           </button>
           
+          {viewMode === 'detailed' && (
+            <div className="w-20">Level</div>
+          )}
+          
           <div className="flex-1 mx-4">Content</div>
-          <div className="w-20">Level</div>
         </div>
       </div>
 
@@ -395,7 +601,7 @@ const ContentTable = ({
           <List
             height={600}
             itemCount={filteredAndSortedEntries.length}
-            itemSize={60}
+            itemSize={viewMode === 'compact' ? 40 : 60}
             className="scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent"
           >
             {EntryRow}

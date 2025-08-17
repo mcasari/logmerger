@@ -15,6 +15,8 @@ const LogViewer = ({
   const [currentRecordIndex, setCurrentRecordIndex] = useState(0);
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
+  const [expandedEntries, setExpandedEntries] = useState(new Set());
   const scrollContainerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const retryCountRef = useRef(0);
@@ -97,6 +99,17 @@ const LogViewer = ({
       }
     };
   }, [currentGroupIndex, currentRecordIndex, groups, collapsedGroups, isNavigating]);
+
+  const toggleEntryExpansion = (entryId) => {
+    const newExpanded = new Set(expandedEntries);
+    if (newExpanded.has(entryId)) {
+      newExpanded.delete(entryId);
+    } else {
+      newExpanded.add(entryId);
+    }
+    setExpandedEntries(newExpanded);
+  };
+
   const getGroupColor = (groupName) => {
     if (groupName.includes('ERROR')) return '#ef4444';
     if (groupName.includes('WARN')) return '#f59e0b';
@@ -136,7 +149,17 @@ const LogViewer = ({
     return String(timestamp);
   };
 
-
+  const getCompactTimestamp = (timestamp) => {
+    if (!timestamp) return 'No timestamp';
+    const date = new Date(timestamp);
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    
+    return `${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
 
   // Navigation functions
   const navigateToPreviousRecord = () => {
@@ -378,13 +401,134 @@ const LogViewer = ({
     );
   };
 
-  // Render log entry
-  const renderLogEntry = (entry, index, groupIndex) => {
+  // Render compact log entry
+  const renderCompactLogEntry = (entry, index, groupIndex) => {
     const isEven = index % 2 === 0;
     const logLevel = extractLogLevel(entry.content);
     const logLevelColor = getLogLevelColor(entry.content);
     const logLevelBackground = getLogLevelBackgroundColor(entry.content);
     const isCurrentRecord = groupIndex === currentGroupIndex && index === currentRecordIndex;
+    const isExpanded = expandedEntries.has(entry.id);
+    
+    return (
+      <div
+        key={entry.id}
+        data-record-id={`${groupIndex}-${index}`}
+        className={`
+          border-b border-border hover:bg-surface-hover transition-colors duration-150
+          ${isCurrentRecord 
+            ? 'bg-blue-200 border-l-4 border-l-blue-600 shadow-md' 
+            : `${logLevelBackground || (isEven ? 'bg-background' : 'bg-surface')} ${entry.isPreview ? 'border-l-4 border-l-blue-500' : ''}`
+          }
+        `}
+      >
+        {/* Compact Row */}
+        <div className="flex items-center px-4 py-2">
+          {/* Toggle Button */}
+          <button
+            onClick={() => toggleEntryExpansion(entry.id)}
+            className="mr-3 p-1 rounded hover:bg-surface-hover"
+          >
+            <Icon 
+              name={isExpanded ? "ChevronDown" : "ChevronRight"} 
+              size={12} 
+              color="var(--color-text-muted)"
+            />
+          </button>
+          
+          {/* File Badge (Compact) */}
+          <div className="flex-shrink-0 mr-2">
+            <div className="px-1.5 py-0.5 bg-accent-100 text-accent-700 rounded text-xs font-medium">
+              {entry.fileName.split('/').pop()}
+            </div>
+          </div>
+          
+          {/* Line Number (Compact) */}
+          <div className="flex-shrink-0 w-10 text-right mr-2">
+            <span className="text-xs text-text-muted font-mono">
+              {entry.lineNumber}
+            </span>
+          </div>
+          
+          {/* Timestamp (Compact) */}
+          <div className="flex-shrink-0 w-28 mr-2">
+            <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
+              {getCompactTimestamp(entry.timestamp)}
+            </span>
+          </div>
+          
+          {/* Log Level Badge (Compact) */}
+          {logLevel && (
+            <div className="flex-shrink-0 mr-2">
+              <div className={`px-1.5 py-0.5 rounded text-xs font-medium border ${logLevelColor}`}>
+                {logLevel}
+              </div>
+            </div>
+          )}
+          
+          {/* Preview Indicator (Compact) */}
+          {entry.isPreview && (
+            <div className="flex-shrink-0 mr-2">
+              <div className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium border border-blue-200">
+                PREVIEW
+              </div>
+            </div>
+          )}
+          
+          {/* Content (Compact) */}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-mono text-text-primary truncate">
+              {entry.content.length > 80 ? `${entry.content.substring(0, 80)}...` : entry.content}
+            </div>
+          </div>
+        </div>
+        
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="px-4 pb-4 bg-surface">
+            <div className="bg-background border border-border rounded-md p-4">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <span className="font-medium text-text-secondary">Source:</span>
+                  <span className="ml-2 text-text-primary">{entry.fileName}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Line:</span>
+                  <span className="ml-2 text-text-primary font-mono">{entry.lineNumber}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Timestamp:</span>
+                  <span className="ml-2 text-text-primary font-mono">
+                    {getOriginalTimestamp(entry.timestamp)}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Level:</span>
+                  <span className="ml-2 text-text-primary">{logLevel || 'N/A'}</span>
+                </div>
+              </div>
+              
+              <div className="mb-3">
+                <span className="font-medium text-text-secondary">Full Content:</span>
+              </div>
+              <div className="bg-slate-50 border border-border rounded p-3 font-mono text-sm text-text-primary whitespace-pre-wrap">
+                {entry.content}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render detailed log entry (Original)
+  const renderDetailedLogEntry = (entry, index, groupIndex) => {
+    const isEven = index % 2 === 0;
+    const logLevel = extractLogLevel(entry.content);
+    const logLevelColor = getLogLevelColor(entry.content);
+    const logLevelBackground = getLogLevelBackgroundColor(entry.content);
+    const isCurrentRecord = groupIndex === currentGroupIndex && index === currentRecordIndex;
+    const isExpanded = expandedEntries.has(entry.id);
     
     return (
       <div
@@ -399,6 +543,18 @@ const LogViewer = ({
         `}
       >
         <div className="flex items-start space-x-3">
+          {/* Toggle Button */}
+          <button
+            onClick={() => toggleEntryExpansion(entry.id)}
+            className="p-1 rounded hover:bg-surface-hover"
+          >
+            <Icon 
+              name={isExpanded ? "ChevronDown" : "ChevronRight"} 
+              size={14} 
+              color="var(--color-text-muted)"
+            />
+          </button>
+          
           {/* File Badge */}
           <div className="flex-shrink-0">
             <div className="px-2 py-1 bg-accent-100 text-accent-700 rounded text-xs font-medium">
@@ -445,6 +601,41 @@ const LogViewer = ({
             </div>
           </div>
         </div>
+        
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <div className="bg-background border border-border rounded-md p-4">
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <span className="font-medium text-text-secondary">Source:</span>
+                  <span className="ml-2 text-text-primary">{entry.fileName}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Line:</span>
+                  <span className="ml-2 text-text-primary font-mono">{entry.lineNumber}</span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Timestamp:</span>
+                  <span className="ml-2 text-text-primary font-mono">
+                    {getOriginalTimestamp(entry.timestamp)}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-medium text-text-secondary">Level:</span>
+                  <span className="ml-2 text-text-primary">{logLevel || 'N/A'}</span>
+                </div>
+              </div>
+              
+              <div className="mb-3">
+                <span className="font-medium text-text-secondary">Full Content:</span>
+              </div>
+              <div className="bg-slate-50 border border-border rounded p-3 font-mono text-sm text-text-primary whitespace-pre-wrap">
+                {entry.content}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -476,6 +667,30 @@ const LogViewer = ({
           </div>
           
           <div className="flex items-center space-x-3">
+            {/* View Mode Toggle */}
+            <div className="flex items-center space-x-1 bg-surface rounded-md p-1">
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  viewMode === 'compact' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Compact
+              </button>
+              <button
+                onClick={() => setViewMode('detailed')}
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                  viewMode === 'detailed' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'text-text-secondary hover:text-text-primary'
+                }`}
+              >
+                Detailed
+              </button>
+            </div>
+            
             {/* Navigation Buttons */}
             <div className="flex items-center space-x-1">
               <Button
@@ -561,7 +776,9 @@ const LogViewer = ({
                   {!isCollapsed && (
                     <div>
                       {group.entries.map((entry, index) => 
-                        renderLogEntry(entry, index, groupIndex)
+                        viewMode === 'compact' 
+                          ? renderCompactLogEntry(entry, index, groupIndex)
+                          : renderDetailedLogEntry(entry, index, groupIndex)
                       )}
                     </div>
                   )}

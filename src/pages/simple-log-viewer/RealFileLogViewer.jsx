@@ -25,12 +25,36 @@ const RealFileLogViewer = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [totalLines, setTotalLines] = useState(0);
   const [fileProcessingProgress, setFileProcessingProgress] = useState(0);
+  const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
+  const [expandedEntries, setExpandedEntries] = useState(new Set());
   const listRef = useRef(null);
   const fileInputRef = useRef(null);
 
   const { parseLogLine } = useLogParser();
   
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const toggleEntryExpansion = (entryId) => {
+    const newExpanded = new Set(expandedEntries);
+    if (newExpanded.has(entryId)) {
+      newExpanded.delete(entryId);
+    } else {
+      newExpanded.add(entryId);
+    }
+    setExpandedEntries(newExpanded);
+  };
+
+  const getCompactTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    
+    return `${month}-${day} ${hours}:${minutes}:${seconds}`;
+  };
 
   // ULTRA-SIMPLE: Just read first few lines immediately
   const showSimplePreview = useCallback(async (file) => {
@@ -249,8 +273,136 @@ const RealFileLogViewer = () => {
     );
   }, [logContent, searchQuery]);
 
-  // Virtualized row renderer
-  const Row = useCallback(({ index, style }) => {
+  // Compact Row Component
+  const CompactRow = useCallback(({ index, style }) => {
+    const entry = filteredLogContent[index];
+    if (!entry) return null;
+
+    const getLogLevelBackground = (level, isRaw = false) => {
+      if (isRaw) {
+        return 'bg-blue-25 border-l-4 border-l-blue-300';
+      }
+      
+      switch (level) {
+        case 'ERROR':
+          return 'bg-red-50 border-l-4 border-l-red-400';
+        case 'WARN':
+          return 'bg-yellow-50 border-l-4 border-l-yellow-400';
+        case 'INFO':
+          return 'bg-green-50 border-l-4 border-l-green-400';
+        case 'DEBUG':
+          return 'bg-purple-50 border-l-4 border-l-purple-400';
+        case 'TRACE':
+          return 'bg-gray-50 border-l-4 border-l-gray-400';
+        case 'RAW':
+          return 'bg-blue-25 border-l-4 border-l-blue-300';
+        default:
+          return '';
+      }
+    };
+
+    const isExpanded = expandedEntries.has(entry.id || index);
+
+    return (
+      <div
+        style={style}
+        className={`hover:bg-surface-hover transition-colors ${getLogLevelBackground(entry.level, entry.isRaw)}`}
+      >
+        {/* Compact Row */}
+        <div className="flex items-center px-3 py-2">
+          {/* Toggle Button */}
+          <button
+            onClick={() => toggleEntryExpansion(entry.id || index)}
+            className="mr-2 p-1 rounded hover:bg-surface-hover"
+          >
+            <Icon 
+              name={isExpanded ? "ChevronDown" : "ChevronRight"} 
+              size={12} 
+              color="var(--color-text-muted)"
+            />
+          </button>
+          
+          {/* Line Number (Compact) */}
+          <span className="text-xs text-text-muted font-mono bg-background px-1.5 py-0.5 rounded mr-2">
+            {entry.line}
+          </span>
+          
+          {/* Timestamp (Compact) */}
+          {entry.timestamp && (
+            <span className="text-xs text-text-muted font-mono mr-2">
+              {getCompactTimestamp(entry.timestamp)}
+            </span>
+          )}
+          
+          {/* Level Badge (Compact) */}
+          {!entry.isRaw && (
+            <span
+              className={`
+                px-1.5 py-0.5 rounded text-xs font-medium mr-2
+                ${entry.level === 'ERROR' ? 'bg-red-100 text-red-700' :
+                  entry.level === 'WARN' ? 'bg-yellow-100 text-yellow-700' :
+                  entry.level === 'INFO'? 'bg-green-100 text-green-700' : 
+                  entry.level === 'RAW' ? 'bg-blue-100 text-blue-700' :
+                  'bg-purple-100 text-purple-700'
+                }
+              `}
+            >
+              {entry.level}
+            </span>
+          )}
+          
+          {/* Message (Compact) */}
+          <div className="flex-1 min-w-0">
+            <div className="font-mono text-xs text-text-primary truncate">
+              {entry.message.length > 100 ? `${entry.message.substring(0, 100)}...` : entry.message}
+            </div>
+          </div>
+        </div>
+        
+        {/* Expanded Content */}
+        {isExpanded && (
+          <div className="px-3 pb-3 bg-surface">
+            <div className="bg-background border border-border rounded-md p-3">
+              <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                <div>
+                  <span className="font-medium text-text-secondary">Line:</span>
+                  <span className="ml-2 text-text-primary font-mono">{entry.line}</span>
+                </div>
+                {entry.timestamp && (
+                  <div>
+                    <span className="font-medium text-text-secondary">Timestamp:</span>
+                    <span className="ml-2 text-text-primary font-mono">{entry.timestamp}</span>
+                  </div>
+                )}
+                {!entry.isRaw && (
+                  <div>
+                    <span className="font-medium text-text-secondary">Level:</span>
+                    <span className="ml-2 text-text-primary">{entry.level}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-2">
+                <span className="font-medium text-text-secondary text-xs">Full Message:</span>
+              </div>
+              <div className="bg-slate-50 border border-border rounded p-2 font-mono text-xs text-text-primary whitespace-pre-wrap">
+                {entry.message}
+              </div>
+              
+              {entry.isRaw && (
+                <div className="text-xs text-blue-600 mt-2">
+                  Raw content - parsing in background...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }, [filteredLogContent, expandedEntries, toggleEntryExpansion]);
+
+  // Detailed Row Component (Original)
+  const DetailedRow = useCallback(({ index, style }) => {
     const entry = filteredLogContent[index];
     if (!entry) return null;
 
@@ -277,6 +429,8 @@ const RealFileLogViewer = () => {
       }
     };
 
+    const isExpanded = expandedEntries.has(entry.id || index);
+
     return (
       <div
         style={style}
@@ -284,6 +438,18 @@ const RealFileLogViewer = () => {
       >
         <div className="p-3">
           <div className="flex items-start space-x-3">
+            {/* Toggle Button */}
+            <button
+              onClick={() => toggleEntryExpansion(entry.id || index)}
+              className="p-1 rounded hover:bg-surface-hover"
+            >
+              <Icon 
+                name={isExpanded ? "ChevronDown" : "ChevronRight"} 
+                size={14} 
+                color="var(--color-text-muted)"
+              />
+            </button>
+            
             <span className="text-xs text-text-muted font-mono bg-background px-2 py-1 rounded">
               {entry.line}
             </span>
@@ -321,10 +487,58 @@ const RealFileLogViewer = () => {
               )}
             </div>
           </div>
+          
+          {/* Expanded Content */}
+          {isExpanded && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="bg-background border border-border rounded-md p-3">
+                <div className="grid grid-cols-2 gap-3 mb-3 text-sm">
+                  <div>
+                    <span className="font-medium text-text-secondary">Line:</span>
+                    <span className="ml-2 text-text-primary font-mono">{entry.line}</span>
+                  </div>
+                  {entry.timestamp && (
+                    <div>
+                      <span className="font-medium text-text-secondary">Timestamp:</span>
+                      <span className="ml-2 text-text-primary font-mono">{entry.timestamp}</span>
+                    </div>
+                  )}
+                  {!entry.isRaw && (
+                    <div>
+                      <span className="font-medium text-text-secondary">Level:</span>
+                      <span className="ml-2 text-text-primary">{entry.level}</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mb-2">
+                  <span className="font-medium text-text-secondary text-sm">Full Message:</span>
+                </div>
+                <div className="bg-slate-50 border border-border rounded p-2 font-mono text-sm text-text-primary whitespace-pre-wrap">
+                  {entry.message}
+                </div>
+                
+                {entry.isRaw && (
+                  <div className="text-xs text-blue-600 mt-2">
+                    Raw content - parsing in background...
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
-  }, [filteredLogContent]);
+  }, [filteredLogContent, expandedEntries, toggleEntryExpansion]);
+
+  // Virtualized row renderer
+  const Row = useCallback(({ index, style }) => {
+    return viewMode === 'compact' ? (
+      <CompactRow index={index} style={style} />
+    ) : (
+      <DetailedRow index={index} style={style} />
+    );
+  }, [viewMode, CompactRow, DetailedRow]);
 
   const handleBackToUpload = () => {
     navigate('/file-upload-dashboard');
@@ -374,6 +588,30 @@ const RealFileLogViewer = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
+              {/* View Mode Toggle */}
+              <div className="flex items-center space-x-1 bg-surface rounded-md p-1">
+                <button
+                  onClick={() => setViewMode('compact')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    viewMode === 'compact' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Compact
+                </button>
+                <button
+                  onClick={() => setViewMode('detailed')}
+                  className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    viewMode === 'detailed' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  Detailed
+                </button>
+              </div>
+              
               <Button
                 variant={useInstantMode ? "primary" : "outline"}
                 iconName="Zap"
@@ -543,7 +781,7 @@ const RealFileLogViewer = () => {
                       ref={listRef}
                       height={600}
                       itemCount={filteredLogContent.length}
-                      itemSize={ITEM_HEIGHT}
+                      itemSize={viewMode === 'compact' ? 40 : ITEM_HEIGHT}
                       onScroll={handleScroll}
                       className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                     >
