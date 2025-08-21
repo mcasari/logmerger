@@ -464,13 +464,6 @@ const LogViewer = ({
             </span>
           </div>
           
-          {/* Timestamp (Compact) */}
-          <div className="flex-shrink-0 w-28 mr-2">
-            <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
-              {getCompactTimestamp(entry.timestamp)}
-            </span>
-          </div>
-          
           {/* Log Level Badge (Compact) */}
           {logLevel && (
             <div className="flex-shrink-0 mr-2">
@@ -580,13 +573,6 @@ const LogViewer = ({
           <div className="flex-shrink-0 w-12 text-right">
             <span className="text-xs text-text-muted font-mono">
               {entry.lineNumber}
-            </span>
-          </div>
-          
-          {/* Timestamp */}
-          <div className="flex-shrink-0 w-40">
-            <span className={`text-xs font-mono ${entry.timestamp ? 'text-text-primary font-medium' : 'text-text-muted'}`}>
-              {getOriginalTimestamp(entry.timestamp)}
             </span>
           </div>
           
