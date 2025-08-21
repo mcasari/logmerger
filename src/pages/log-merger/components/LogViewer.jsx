@@ -458,7 +458,7 @@ const LogViewer = ({
           </div>
           
           {/* Line Number (Compact) */}
-          <div className="flex-shrink-0 w-10 text-right mr-2">
+          <div className="flex-shrink-0 w-8 text-right mr-2">
             <span className="text-xs text-text-muted font-mono">
               {entry.lineNumber}
             </span>
@@ -485,7 +485,7 @@ const LogViewer = ({
           {/* Content (Compact) */}
           <div className="flex-1 min-w-0">
             <div className="text-xs font-mono text-text-primary truncate">
-              {entry.content.length > 80 ? `${entry.content.substring(0, 80)}...` : entry.content}
+              {entry.content.length > 500 ? `${entry.content.substring(0, 500)}...` : entry.content}
             </div>
           </div>
         </div>
@@ -570,7 +570,7 @@ const LogViewer = ({
           </div>
           
           {/* Line Number */}
-          <div className="flex-shrink-0 w-12 text-right">
+          <div className="flex-shrink-0 w-10 text-right">
             <span className="text-xs text-text-muted font-mono">
               {entry.lineNumber}
             </span>
