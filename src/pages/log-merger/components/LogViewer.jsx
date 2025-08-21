@@ -151,12 +151,26 @@ const LogViewer = ({
 
   const getCompactTimestamp = (timestamp) => {
     if (!timestamp) return 'No timestamp';
+    
+    // If timestamp is already a string, try to extract just the time part
+    if (typeof timestamp === 'string') {
+      // Try to extract time from common formats
+      const timeMatch = timestamp.match(/(\d{2}:\d{2}:\d{2}(?:\.\d{3})?)/);
+      if (timeMatch) {
+        return timeMatch[1];
+      }
+      
+      // If no time pattern found, return the original string (truncated if too long)
+      return timestamp.length > 20 ? timestamp.substring(0, 20) + '...' : timestamp;
+    }
+    
+    // For Date objects, use local time instead of UTC
     const date = new Date(timestamp);
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
