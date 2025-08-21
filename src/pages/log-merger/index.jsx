@@ -429,6 +429,11 @@ const LogMerger = () => {
 
   const totalEntries = logEntries.length;
   const filteredEntries = filteredGroups.reduce((total, group) => total + group.entries.length, 0);
+  
+  // Count entries that match the grouping pattern (excluding "Other" group)
+  const patternMatchedEntries = groupedEntries
+    .filter(group => group.name !== 'Other')
+    .reduce((total, group) => total + group.entries.length, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -487,7 +492,7 @@ const LogMerger = () => {
                   <div className="flex items-center space-x-2">
                     <Icon name="Filter" size={20} color="var(--color-success)" />
                     <div>
-                      <div className="text-2xl font-bold text-text-primary">{filteredEntries.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-text-primary">{patternMatchedEntries.toLocaleString()}</div>
                       <div className="text-sm text-text-secondary">Filtered Lines</div>
                     </div>
                   </div>
