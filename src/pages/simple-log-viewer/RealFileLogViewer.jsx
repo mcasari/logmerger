@@ -309,7 +309,7 @@ const RealFileLogViewer = () => {
         className={`hover:bg-surface-hover transition-colors ${getLogLevelBackground(entry.level, entry.isRaw)}`}
       >
         {/* Compact Row */}
-        <div className="flex items-center px-3 py-2">
+        <div className="flex items-start px-3 py-4 h-20 overflow-hidden">
           {/* Toggle Button */}
           <button
             onClick={() => toggleEntryExpansion(entry.id || index)}
@@ -353,7 +353,7 @@ const RealFileLogViewer = () => {
           
           {/* Message (Compact) */}
           <div className="flex-1 min-w-0">
-            <div className="font-mono text-xs text-text-primary truncate">
+            <div className="font-mono text-xs text-text-primary break-words line-clamp-3">
               {entry.message.length > 100 ? `${entry.message.substring(0, 100)}...` : entry.message}
             </div>
           </div>
@@ -781,7 +781,7 @@ const RealFileLogViewer = () => {
                       ref={listRef}
                       height={600}
                       itemCount={filteredLogContent.length}
-                      itemSize={viewMode === 'compact' ? 40 : ITEM_HEIGHT}
+                      itemSize={viewMode === 'compact' ? 80 : ITEM_HEIGHT}
                       onScroll={handleScroll}
                       className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
                     >

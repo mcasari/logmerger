@@ -437,7 +437,7 @@ const LogViewer = ({
         `}
       >
         {/* Compact Row */}
-        <div className="flex items-center px-4 py-2">
+        <div className="flex items-start px-4 py-4 h-20 overflow-hidden">
           {/* Toggle Button */}
           <button
             onClick={() => toggleEntryExpansion(entry.id)}
@@ -484,7 +484,7 @@ const LogViewer = ({
           
           {/* Content (Compact) */}
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-mono text-text-primary truncate">
+            <div className="text-xs font-mono text-text-primary break-words line-clamp-3">
               {entry.content.length > 500 ? `${entry.content.substring(0, 500)}...` : entry.content}
             </div>
           </div>

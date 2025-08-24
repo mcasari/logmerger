@@ -176,7 +176,7 @@ const ContentTable = ({
     return (
       <div className="border-b border-border">
         {/* Compact Row */}
-        <div className="flex items-center px-4 py-2 hover:bg-surface-hover transition-colors duration-150">
+        <div className="flex items-start px-4 py-4 h-20 overflow-hidden hover:bg-surface-hover transition-colors duration-150">
           {/* Selection Checkbox */}
           <input
             type="checkbox"
@@ -225,7 +225,7 @@ const ContentTable = ({
           
           {/* Content Preview (Compact) */}
           <div className="flex-1 mx-2">
-            <div className="text-xs text-text-primary truncate">
+            <div className="text-xs text-text-primary break-words line-clamp-3">
               {entry.content.length > 100 ? `${entry.content.substring(0, 100)}...` : entry.content}
             </div>
           </div>
@@ -601,7 +601,7 @@ const ContentTable = ({
           <List
             height={600}
             itemCount={filteredAndSortedEntries.length}
-            itemSize={viewMode === 'compact' ? 40 : 60}
+            itemSize={viewMode === 'compact' ? 80 : 60}
             className="scrollbar-thin scrollbar-thumb-secondary-300 scrollbar-track-transparent"
           >
             {EntryRow}
