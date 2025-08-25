@@ -21,6 +21,7 @@ const LogMerger = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedLogLevels, setSelectedLogLevels] = useState(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -349,19 +350,60 @@ const LogMerger = () => {
     }
   }, []);
 
+  // Extract log level from entry content
+  const extractLogLevel = useCallback((content) => {
+    const patterns = [
+      /\[(ERROR|WARN|INFO|DEBUG|TRACE)\]/i,  // [ERROR], [INFO], etc.
+      /\b(ERROR|WARN|INFO|DEBUG|TRACE)\b/i,  // ERROR, INFO, etc. (word boundaries)
+      /^(ERROR|WARN|INFO|DEBUG|TRACE):/i,    // ERROR:, INFO:, etc. (start of line)
+      /(ERROR|WARN|INFO|DEBUG|TRACE)\s+/i    // ERROR , INFO , etc. (followed by space)
+    ];
+    
+    for (const pattern of patterns) {
+      const levelMatch = content.match(pattern);
+      if (levelMatch) {
+        const level = levelMatch[1] || levelMatch[0];
+        return level.toUpperCase();
+      }
+    }
+    return null;
+  }, []);
+
+  // Filter entries by selected log levels
+  const filteredByLogLevel = useMemo(() => {
+    if (selectedLogLevels.length === 0) return logEntries;
+    
+    return logEntries.filter(entry => {
+      const level = extractLogLevel(entry.content);
+      return level && selectedLogLevels.includes(level);
+    });
+  }, [logEntries, selectedLogLevels, extractLogLevel]);
+
+  // Calculate log level counts for the selector
+  const logLevelCounts = useMemo(() => {
+    const counts = {};
+    logEntries.forEach(entry => {
+      const level = extractLogLevel(entry.content);
+      if (level) {
+        counts[level] = (counts[level] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [logEntries, extractLogLevel]);
+
   // Group log entries based on the selected pattern
   const groupedEntries = useMemo(() => {
-    if (logEntries.length === 0) return [];
+    if (filteredByLogLevel.length === 0) return [];
 
     const groups = new Map();
 
-    logEntries.forEach(entry => {
+    filteredByLogLevel.forEach(entry => {
       let groupKey = 'Other';
 
       try {
         if (groupingType === 'log-level') {
-          const levelMatch = entry.content.match(/\[(ERROR|WARN|INFO|DEBUG)\]/i);
-          groupKey = levelMatch ? levelMatch[1].toUpperCase() : 'Other';
+          const level = extractLogLevel(entry.content);
+          groupKey = level || 'Other';
         } else if (groupingType === 'hour') {
           const hour = new Date(entry.timestamp).getHours();
           groupKey = `Hour ${hour.toString().padStart(2, '0')}:00`;
@@ -389,7 +431,7 @@ const LogMerger = () => {
     });
 
     return Array.from(groups.values()).sort((a, b) => b.count - a.count);
-  }, [logEntries, groupingPattern, groupingType]);
+  }, [filteredByLogLevel, groupingPattern, groupingType, extractLogLevel]);
 
   // Filter entries based on search query
   const filteredGroups = useMemo(() => {
@@ -404,6 +446,25 @@ const LogMerger = () => {
       )
     })).filter(group => group.entries.length > 0);
   }, [groupedEntries, searchQuery]);
+
+  // Handle log level selection
+  const handleLogLevelToggle = useCallback((level) => {
+    setSelectedLogLevels(prev => {
+      if (prev.includes(level)) {
+        return prev.filter(l => l !== level);
+      } else {
+        return [...prev, level];
+      }
+    });
+  }, []);
+
+  const handleSelectAllLogLevels = useCallback(() => {
+    setSelectedLogLevels(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
+  }, []);
+
+  const handleClearAllLogLevels = useCallback(() => {
+    setSelectedLogLevels([]);
+  }, []);
 
   // Handle group collapse/expand
   const handleGroupToggle = useCallback((groupId) => {
@@ -424,6 +485,7 @@ const LogMerger = () => {
     setLogEntries([]);
     setCollapsedGroups(new Set());
     setSearchQuery('');
+    setSelectedLogLevels(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
     setEntriesWithoutTimestamp(0);
   }, []);
 
@@ -467,7 +529,7 @@ const LogMerger = () => {
             
             {/* Stats */}
             {totalEntries > 0 && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className="bg-surface border border-border rounded-lg p-4">
                   <div className="flex items-center space-x-2">
                     <Icon name="Files" size={20} color="var(--color-primary)" />
@@ -492,7 +554,7 @@ const LogMerger = () => {
                   <div className="flex items-center space-x-2">
                     <Icon name="Filter" size={20} color="var(--color-success)" />
                     <div>
-                      <div className="text-2xl font-bold text-text-primary">{patternMatchedEntries.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-text-primary">{filteredEntries.toLocaleString()}</div>
                       <div className="text-sm text-text-secondary">Filtered Lines</div>
                     </div>
                   </div>
@@ -504,6 +566,16 @@ const LogMerger = () => {
                     <div>
                       <div className="text-2xl font-bold text-text-primary">{filteredGroups.length}</div>
                       <div className="text-sm text-text-secondary">Groups</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-surface border border-border rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <Icon name="Activity" size={20} color="var(--color-accent)" />
+                    <div>
+                      <div className="text-2xl font-bold text-text-primary">{selectedLogLevels.length}/5</div>
+                      <div className="text-sm text-text-secondary">Log Levels Active</div>
                     </div>
                   </div>
                 </div>
@@ -531,11 +603,17 @@ const LogMerger = () => {
                 onPatternChange={setGroupingPattern}
                 onTypeChange={setGroupingType}
                 sampleEntries={logEntries.slice(0, 3)}
+                selectedLogLevels={selectedLogLevels}
+                onLogLevelToggle={handleLogLevelToggle}
+                onSelectAllLogLevels={handleSelectAllLogLevels}
+                onClearAllLogLevels={handleClearAllLogLevels}
+                logLevelCounts={logLevelCounts}
               />
             </div>
 
             {/* Right Column - Actions */}
             <div className="space-y-6">
+              {/* Actions */}
               <div className="bg-surface border border-border rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-text-primary mb-4">Actions</h3>
                 <div className="space-y-3">
@@ -621,8 +699,6 @@ const LogMerger = () => {
                   </Button>
                 </div>
               </div>
-              
-
             </div>
           </div>
 
