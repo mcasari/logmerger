@@ -17,7 +17,7 @@ const PatternConfiguration = ({
 }) => {
   const [isPatternValid, setIsPatternValid] = useState(true);
   const [patternError, setPatternError] = useState('');
-  const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = useState(true);
+  const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = useState(false);
 
   const predefinedPatterns = [
     {
