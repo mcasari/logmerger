@@ -16,8 +16,8 @@ const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 const LogMerger = () => {
   const [files, setFiles] = useState([]);
   const [logEntries, setLogEntries] = useState([]);
-  const [groupingPattern, setGroupingPattern] = useState('\\[(ERROR|WARN|INFO|DEBUG)\\]');
-  const [groupingType, setGroupingType] = useState('log-level'); // 'log-level', 'hour', 'custom'
+  const [groupingPattern, setGroupingPattern] = useState('');
+  const [groupingType, setGroupingType] = useState('hour'); // 'hour', 'custom'
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -401,10 +401,7 @@ const LogMerger = () => {
       let groupKey = 'Other';
 
       try {
-        if (groupingType === 'log-level') {
-          const level = extractLogLevel(entry.content);
-          groupKey = level || 'Other';
-        } else if (groupingType === 'hour') {
+        if (groupingType === 'hour') {
           const hour = new Date(entry.timestamp).getHours();
           groupKey = `Hour ${hour.toString().padStart(2, '0')}:00`;
         } else if (groupingType === 'custom' && groupingPattern) {

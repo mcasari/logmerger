@@ -17,15 +17,9 @@ const PatternConfiguration = ({
 }) => {
   const [isPatternValid, setIsPatternValid] = useState(true);
   const [patternError, setPatternError] = useState('');
+  const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = useState(true);
 
   const predefinedPatterns = [
-    {
-      id: 'log-level',
-      name: 'Log Level',
-      description: 'Group by ERROR, WARN, INFO, DEBUG, TRACE',
-      pattern: '\\[(ERROR|WARN|INFO|DEBUG|TRACE)\\]',
-      example: '[ERROR] Database connection failed'
-    },
     {
       id: 'hour',
       name: 'Hour',
@@ -111,9 +105,119 @@ const PatternConfiguration = ({
     <div className="bg-surface border border-border rounded-lg p-6">
       <h3 className="text-lg font-semibold text-text-primary mb-4">Pattern Configuration</h3>
       
+      {/* Log Level Filter - Always visible */}
+      <div className="mb-6">
+        <div className="bg-surface border border-border rounded-lg">
+          {/* Toggle Header */}
+          <button
+            onClick={() => setIsLogLevelFilterOpen(!isLogLevelFilterOpen)}
+            className="w-full p-4 text-left flex items-center justify-between hover:bg-surface-hover transition-colors duration-150"
+          >
+            <div className="flex items-center space-x-2">
+              <Icon 
+                name="Filter" 
+                size={16} 
+                color="var(--color-primary)" 
+              />
+              <span className="text-sm font-medium text-text-primary">
+                Log Level Filter
+              </span>
+              {selectedLogLevels.length > 0 && (
+                <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
+                  {selectedLogLevels.length} selected
+                </span>
+              )}
+            </div>
+            <Icon 
+              name={isLogLevelFilterOpen ? "ChevronUp" : "ChevronDown"} 
+              size={16} 
+              color="var(--color-text-secondary)" 
+              className="transition-transform duration-150"
+            />
+          </button>
+
+          {/* Collapsible Content */}
+          {isLogLevelFilterOpen && (
+            <div className="px-4 pb-4 border-t border-border">
+              <div className="pt-4 space-y-3">
+                {[
+                  { key: 'ERROR', label: 'ERROR', color: 'bg-error-100 text-error-800 border-error-200' },
+                  { key: 'WARN', label: 'WARN', color: 'bg-warning-100 text-warning-800 border-warning-200' },
+                  { key: 'INFO', label: 'INFO', color: 'bg-green-100 text-green-800 border-green-200' },
+                  { key: 'DEBUG', label: 'DEBUG', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' },
+                  { key: 'TRACE', label: 'TRACE', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' }
+                ].map(level => {
+                  const isSelected = selectedLogLevels.includes(level.key);
+                  const count = logLevelCounts[level.key] || 0;
+                  
+                  return (
+                    <label key={level.key} className="flex items-center space-x-3 cursor-pointer hover:bg-surface-hover p-2 rounded-md transition-colors duration-150">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onLogLevelToggle(level.key)}
+                        className="rounded border-border text-primary-600 focus:ring-primary-500 focus:ring-2 focus:ring-offset-0"
+                      />
+                      <div className={`px-2 py-1 rounded text-xs font-medium border ${level.color}`}>
+                        {level.label}
+                      </div>
+                      <div className="text-xs text-text-secondary flex-1">
+                        {count.toLocaleString()} entries
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+              
+              {/* Select All / Clear All buttons */}
+              <div className="mt-4 flex space-x-2">
+                <button
+                  onClick={onSelectAllLogLevels}
+                  className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={onClearAllLogLevels}
+                  className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
+                >
+                  Clear All
+                </button>
+              </div>
+              
+              {selectedLogLevels.length > 0 && (
+                <div className="mt-4 p-3 rounded-lg bg-background border border-border">
+                  <div className="flex items-center space-x-2">
+                    <Icon 
+                      name="Filter" 
+                      size={16} 
+                      color="var(--color-primary)" 
+                    />
+                    <span className="text-sm font-medium text-primary-700">
+                      Showing {selectedLogLevels.length} of 5 log levels
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {selectedLogLevels.map(level => (
+                      <span 
+                        key={level}
+                        className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium"
+                      >
+                        {level}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* Pattern Type Selection */}
       <div className="space-y-3 mb-6">
         <label className="text-sm font-medium text-text-primary">Grouping Method</label>
+        
         <div className="grid grid-cols-1 gap-2">
           {predefinedPatterns.map((pattern) => (
             <button
@@ -140,101 +244,6 @@ const PatternConfiguration = ({
           ))}
         </div>
       </div>
-
-      {/* Log Level Filter - Only show when log-level grouping is selected */}
-      {groupingType === 'log-level' && (
-        <div className="mb-6">
-          <label className="text-sm font-medium text-text-primary block mb-2">
-            Log Level Filter
-          </label>
-          <div className="grid grid-cols-1 gap-2">
-            {[
-              { key: 'ERROR', label: 'ERROR', color: 'bg-error-100 text-error-800 border-error-200' },
-              { key: 'WARN', label: 'WARN', color: 'bg-warning-100 text-warning-800 border-warning-200' },
-              { key: 'INFO', label: 'INFO', color: 'bg-green-100 text-green-800 border-green-200' },
-              { key: 'DEBUG', label: 'DEBUG', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' },
-              { key: 'TRACE', label: 'TRACE', color: 'bg-secondary-100 text-secondary-700 border-secondary-200' }
-            ].map(level => {
-              const isSelected = selectedLogLevels.includes(level.key);
-              const count = logLevelCounts[level.key] || 0;
-              
-              return (
-                <button
-                  key={level.key}
-                  onClick={() => onLogLevelToggle(level.key)}
-                  className={`
-                    p-3 text-left rounded-lg border transition-all duration-150
-                    ${isSelected
-                      ? 'border-primary bg-primary-50 text-primary-700' 
-                      : 'border-border bg-background hover:bg-surface-hover text-text-primary'
-                    }
-                  `}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`px-2 py-1 rounded text-xs font-medium border ${level.color}`}>
-                        {level.label}
-                      </div>
-                      <div className="text-xs text-current opacity-70">
-                        {count.toLocaleString()} entries
-                      </div>
-                    </div>
-                    
-                    {isSelected && (
-                      <Icon 
-                        name="CheckCircle" 
-                        size={16} 
-                        color="var(--color-primary)" 
-                      />
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          
-          {/* Select All / Clear All buttons */}
-          <div className="mt-3 flex space-x-2">
-            <button
-              onClick={onSelectAllLogLevels}
-              className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
-            >
-              Select All
-            </button>
-            <button
-              onClick={onClearAllLogLevels}
-              className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
-            >
-              Clear All
-            </button>
-          </div>
-          
-          {selectedLogLevels.length > 0 && (
-            <div className="mt-3 p-3 rounded-lg bg-background border border-border">
-              <div className="flex items-center space-x-2">
-                <Icon 
-                  name="Filter" 
-                  size={16} 
-                  color="var(--color-primary)" 
-                />
-                <span className="text-sm font-medium text-primary-700">
-                  Showing {selectedLogLevels.length} of 5 log levels
-                </span>
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {selectedLogLevels.map(level => (
-                  <span 
-                    key={level}
-                    className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium"
-                  >
-                    {level}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Custom Pattern Input */}
       {groupingType === 'custom' && (
