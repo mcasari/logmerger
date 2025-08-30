@@ -103,7 +103,7 @@ const PatternConfiguration = ({
 
   return (
     <div className="bg-surface border border-border rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">Pattern Configuration</h3>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">Filtering Options</h3>
       
       {/* Log Level Filter - Always visible */}
       <div className="mb-6">
