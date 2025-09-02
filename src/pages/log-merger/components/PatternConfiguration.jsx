@@ -287,24 +287,7 @@ const PatternConfiguration = ({
         </div>
       )}
 
-      {/* Pattern Status */}
-      <div className="mt-6 p-3 rounded-lg bg-background border border-border">
-        <div className="flex items-center space-x-2">
-          <Icon 
-            name={isPatternValid ? "CheckCircle" : "AlertCircle"} 
-            size={16} 
-            color={isPatternValid ? "var(--color-success)" : "var(--color-error)"} 
-          />
-          <span className={`text-sm font-medium ${
-            isPatternValid ? 'text-success-700' : 'text-error-700'
-          }`}>
-            {isPatternValid 
-              ? `Pattern is valid - Grouping by ${predefinedPatterns.find(p => p.id === groupingType)?.name || 'custom pattern'}`
-              : 'Invalid pattern'
-            }
-          </span>
-        </div>
-      </div>
+
     </div>
   );
 };
