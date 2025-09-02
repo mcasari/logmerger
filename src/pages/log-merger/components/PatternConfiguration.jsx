@@ -214,36 +214,7 @@ const PatternConfiguration = ({
         </div>
       </div>
       
-      {/* Pattern Type Selection */}
-      <div className="space-y-3 mb-6">
-        <label className="text-sm font-medium text-text-primary">Grouping Method</label>
-        
-        <div className="grid grid-cols-1 gap-2">
-          {predefinedPatterns.map((pattern) => (
-            <button
-              key={pattern.id}
-              onClick={() => {
-                onTypeChange(pattern.id);
-                if (pattern.pattern) {
-                  onPatternChange(pattern.pattern);
-                  validatePattern(pattern.pattern);
-                }
-              }}
-              className={`
-                p-3 text-left rounded-lg border transition-all duration-150
-                ${groupingType === pattern.id
-                  ? 'border-primary bg-primary-50 text-primary-700' :'border-border bg-background hover:bg-surface-hover text-text-primary'
-                }
-              `}
-            >
-              <div className="font-medium">{pattern.name}</div>
-              <div className="text-xs text-current opacity-70 mt-1">
-                {pattern.description}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
+
 
       {/* Custom Pattern Input */}
       {groupingType === 'custom' && (
