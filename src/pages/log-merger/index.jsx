@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import Header from '../../components/ui/Header';
 import FileUploadZone from './components/FileUploadZone';
 import PatternConfiguration from './components/PatternConfiguration';
@@ -29,6 +29,7 @@ const LogMerger = () => {
     endDate: '',
     endTime: ''
   });
+  const [isControlPanelOpen, setIsControlPanelOpen] = useState(true);
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -38,6 +39,13 @@ const LogMerger = () => {
   const [fileChunks, setFileChunks] = useState(new Map()); // Store file chunks for lazy loading
   const [loadedChunks, setLoadedChunks] = useState(0);
   const abortControllerRef = useRef(null);
+
+  // Auto-open control panel when there are files or when processing
+  useEffect(() => {
+    if (files.length > 0 || isProcessing) {
+      setIsControlPanelOpen(true);
+    }
+  }, [files.length, isProcessing]);
 
   // Handle file selection
   const handleFilesSelected = useCallback((selectedFiles) => {
@@ -397,26 +405,52 @@ const LogMerger = () => {
     return filteredByLogLevel.filter(entry => {
       if (!entry.timestamp) return false;
       
-      const entryDate = new Date(entry.timestamp);
+      let entryDate;
+      try {
+        entryDate = new Date(entry.timestamp);
+        if (isNaN(entryDate.getTime())) return false; // Invalid date
+      } catch (error) {
+        return false; // Date parsing failed
+      }
       
       // Start date/time filter
       if (startDate && startTime) {
-        const startDateTime = new Date(`${startDate}T${startTime}`);
-        if (entryDate < startDateTime) return false;
+        try {
+          const startDateTime = new Date(`${startDate}T${startTime}`);
+          if (!isNaN(startDateTime.getTime()) && entryDate < startDateTime) return false;
+        } catch (error) {
+          // Skip this filter if date parsing fails
+        }
       } else if (startDate) {
-        const startDateOnly = new Date(startDate);
-        startDateOnly.setHours(0, 0, 0, 0);
-        if (entryDate < startDateOnly) return false;
+        try {
+          const startDateOnly = new Date(startDate);
+          if (!isNaN(startDateOnly.getTime())) {
+            startDateOnly.setHours(0, 0, 0, 0);
+            if (entryDate < startDateOnly) return false;
+          }
+        } catch (error) {
+          // Skip this filter if date parsing fails
+        }
       }
       
       // End date/time filter
       if (endDate && endTime) {
-        const endDateTime = new Date(`${endDate}T${endTime}`);
-        if (entryDate > endDateTime) return false;
+        try {
+          const endDateTime = new Date(`${endDate}T${endTime}`);
+          if (!isNaN(endDateTime.getTime()) && entryDate > endDateTime) return false;
+        } catch (error) {
+          // Skip this filter if date parsing fails
+        }
       } else if (endDate) {
-        const endDateOnly = new Date(endDate);
-        endDateOnly.setHours(23, 59, 59, 999);
-        if (entryDate > endDateOnly) return false;
+        try {
+          const endDateOnly = new Date(endDate);
+          if (!isNaN(endDateOnly.getTime())) {
+            endDateOnly.setHours(23, 59, 59, 999);
+            if (entryDate > endDateOnly) return false;
+          }
+        } catch (error) {
+          // Skip this filter if date parsing fails
+        }
       }
       
       return true;
@@ -472,7 +506,7 @@ const LogMerger = () => {
     });
 
     return Array.from(groups.values()).sort((a, b) => b.count - a.count);
-  }, [filteredByLogLevel, groupingPattern, groupingType, extractLogLevel]);
+  }, [filteredByDateTime, groupingPattern, groupingType, extractLogLevel]);
 
   // Filter entries based on search query
   const filteredGroups = useMemo(() => {
@@ -509,10 +543,36 @@ const LogMerger = () => {
 
   // Handle date/time filter changes
   const handleDateTimeFilterChange = useCallback((field, value) => {
-    setDateTimeFilter(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setDateTimeFilter(prev => {
+      const newFilter = { ...prev, [field]: value };
+      
+      // Validate date/time combinations
+      if (field === 'startDate' || field === 'startTime') {
+        if (newFilter.startDate && newFilter.endDate) {
+          try {
+            const startDate = newFilter.startDate;
+            const startTime = newFilter.startTime || '00:00';
+            const endDate = newFilter.endDate;
+            const endTime = newFilter.endTime || '23:59';
+            
+            const startDateTime = new Date(`${startDate}T${startTime}`);
+            const endDateTime = new Date(`${endDate}T${endTime}`);
+            
+            if (!isNaN(startDateTime.getTime()) && !isNaN(endDateTime.getTime()) && startDateTime > endDateTime) {
+              // Swap dates if start is after end
+              if (field === 'startDate' || field === 'startTime') {
+                newFilter.endDate = startDate;
+                newFilter.endTime = startTime;
+              }
+            }
+          } catch (error) {
+            // Ignore validation errors
+          }
+        }
+      }
+      
+      return newFilter;
+    });
   }, []);
 
   const handleDateTimeFilterToggle = useCallback(() => {
@@ -559,6 +619,7 @@ const LogMerger = () => {
       endDate: '',
       endTime: ''
     });
+    setIsControlPanelOpen(true);
     setEntriesWithoutTimestamp(0);
   }, []);
 
@@ -656,127 +717,182 @@ const LogMerger = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - File Upload */}
-            <div className="space-y-6">
-              <FileUploadZone
-                files={files}
-                onFilesSelected={handleFilesSelected}
-                onRemoveFile={handleRemoveFile}
-                onProcessFiles={handleProcessFiles}
-                isProcessing={isProcessing}
+          {/* Control Panel - Togglable */}
+          <div className="bg-surface border border-border rounded-lg">
+            {/* Panel Header */}
+            <button
+              onClick={() => setIsControlPanelOpen(!isControlPanelOpen)}
+              className="w-full p-4 text-left flex items-center justify-between hover:bg-surface-hover transition-colors duration-150"
+            >
+              <div className="flex items-center space-x-2">
+                <Icon 
+                  name="Settings" 
+                  size={20} 
+                  color="var(--color-primary)" 
+                />
+                <span className="text-lg font-semibold text-text-primary">
+                  Control Panel
+                </span>
+                <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-sm font-medium">
+                  {files.length > 0 ? `${files.length} Files` : 'Upload'} • Filter • Actions
+                </span>
+              </div>
+              <Icon 
+                name={isControlPanelOpen ? "ChevronUp" : "ChevronDown"} 
+                size={20} 
+                color="var(--color-text-secondary)" 
+                className="transition-transform duration-150"
               />
-            </div>
+            </button>
 
-            {/* Middle Column - Pattern Configuration */}
-            <div className="space-y-6">
-              <PatternConfiguration
-                groupingPattern={groupingPattern}
-                groupingType={groupingType}
-                onPatternChange={setGroupingPattern}
-                onTypeChange={setGroupingType}
-                sampleEntries={logEntries.slice(0, 3)}
-                selectedLogLevels={selectedLogLevels}
-                onLogLevelToggle={handleLogLevelToggle}
-                onSelectAllLogLevels={handleSelectAllLogLevels}
-                onClearAllLogLevels={handleClearAllLogLevels}
-                logLevelCounts={logLevelCounts}
-                dateTimeFilter={dateTimeFilter}
-                onDateTimeFilterChange={handleDateTimeFilterChange}
-                onDateTimeFilterToggle={handleDateTimeFilterToggle}
-                onClearDateTimeFilter={handleClearDateTimeFilter}
-              />
-            </div>
+            {/* Panel Content */}
+            {isControlPanelOpen && (
+              <div className="px-6 pb-6 border-t border-border">
+                <div className="pt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column - File Upload */}
+                  <div className="space-y-6">
+                    <div className="bg-background border border-border rounded-lg p-4">
+                      <h3 className="text-md font-semibold text-text-primary mb-4">Upload Log Files</h3>
+                      <FileUploadZone
+                        files={files}
+                        onFilesSelected={handleFilesSelected}
+                        onRemoveFile={handleRemoveFile}
+                        onProcessFiles={handleProcessFiles}
+                        isProcessing={isProcessing}
+                      />
+                    </div>
+                  </div>
 
-            {/* Right Column - Actions */}
-            <div className="space-y-6">
-              {/* Actions */}
-              <div className="bg-surface border border-border rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-text-primary mb-4">Actions</h3>
-                <div className="space-y-3">
-                  <Button
-                    variant={files.length > 0 && !isProcessing ? "primary" : "secondary"}
-                    disabled={files.length === 0 || isProcessing}
-                    onClick={handleProcessFiles}
-                    fullWidth
-                    className="flex items-center justify-center space-x-2"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <ButtonSpinner />
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Icon name="Play" size={16} />
-                        <span>Process Files</span>
-                      </>
-                    )}
-                  </Button>
-                  
-                  {isProcessing && (
-                    <>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-text-secondary">
-                          <span>Progress: {Math.round(processingProgress)}%</span>
-                          <span>Files: {processedFiles}/{files.length}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${processingProgress}%` }}
-                          ></div>
-                        </div>
+                  {/* Middle Column - Pattern Configuration */}
+                  <div className="space-y-6">
+                    <div className="bg-background border border-border rounded-lg p-4">
+                      <h3 className="text-md font-semibold text-text-primary mb-4">Filtering Options</h3>
+                      <PatternConfiguration
+                        groupingPattern={groupingPattern}
+                        groupingType={groupingType}
+                        onPatternChange={setGroupingPattern}
+                        onTypeChange={setGroupingType}
+                        sampleEntries={logEntries.slice(0, 3)}
+                        selectedLogLevels={selectedLogLevels}
+                        onLogLevelToggle={handleLogLevelToggle}
+                        onSelectAllLogLevels={handleSelectAllLogLevels}
+                        onClearAllLogLevels={handleClearAllLogLevels}
+                        logLevelCounts={logLevelCounts}
+                        dateTimeFilter={dateTimeFilter}
+                        onDateTimeFilterChange={handleDateTimeFilterChange}
+                        onDateTimeFilterToggle={handleDateTimeFilterToggle}
+                        onClearDateTimeFilter={handleClearDateTimeFilter}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Column - Actions */}
+                  <div className="space-y-6">
+                    <div className="bg-background border border-border rounded-lg p-4">
+                      <h3 className="text-md font-semibold text-text-primary mb-4">Actions</h3>
+                      <div className="space-y-3">
+                        <Button
+                          variant={files.length > 0 && !isProcessing ? "primary" : "secondary"}
+                          disabled={files.length === 0 || isProcessing}
+                          onClick={handleProcessFiles}
+                          fullWidth
+                          className="flex items-center justify-center space-x-2"
+                        >
+                          {isProcessing ? (
+                            <>
+                              <ButtonSpinner />
+                              <span>Processing...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="Play" size={16} />
+                              <span>Process Files</span>
+                            </>
+                          )}
+                        </Button>
+                        
+                        {isProcessing && (
+                          <>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm text-text-secondary">
+                                <span>Progress: {Math.round(processingProgress)}%</span>
+                                <span>Files: {processedFiles}/{files.length}</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-primary h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${processingProgress}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              iconName="X"
+                              iconSize={16}
+                              onClick={handleCancelProcessing}
+                              fullWidth
+                              className="flex items-center justify-center space-x-2"
+                            >
+                              Cancel Processing
+                            </Button>
+                          </>
+                        )}
+                        
+                        <Button
+                          variant="outline"
+                          iconName="Download"
+                          iconSize={16}
+                          disabled={totalEntries === 0}
+                          onClick={() => {
+                            // Simple export functionality
+                            const exportData = filteredGroups.map(group => ({
+                              group: group.name,
+                              count: group.count,
+                              entries: group.entries.map(e => ({
+                                file: e.fileName,
+                                line: e.lineNumber,
+                                content: e.content,
+                                timestamp: e.timestamp
+                              }))
+                            }));
+                            
+                            const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+                              type: 'application/json' 
+                            });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `log-export-${new Date().toISOString().split('T')[0]}.json`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }}
+                          fullWidth
+                        >
+                          Export Results
+                        </Button>
                       </div>
-                      
-                      <Button
-                        variant="outline"
-                        iconName="X"
-                        iconSize={16}
-                        onClick={handleCancelProcessing}
-                        fullWidth
-                        className="flex items-center justify-center space-x-2"
-                      >
-                        Cancel Processing
-                      </Button>
-                    </>
-                  )}
-                  
-                  <Button
-                    variant="outline"
-                    iconName="Download"
-                    iconSize={16}
-                    disabled={totalEntries === 0}
-                    onClick={() => {
-                      // Simple export functionality
-                      const exportData = filteredGroups.map(group => ({
-                        group: group.name,
-                        count: group.count,
-                        entries: group.entries.map(e => ({
-                          file: e.fileName,
-                          line: e.lineNumber,
-                          content: e.content,
-                          timestamp: e.timestamp
-                        }))
-                      }));
-                      
-                      const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
-                        type: 'application/json' 
-                      });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `log-export-${new Date().toISOString().split('T')[0]}.json`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    fullWidth
-                  >
-                    Export Results
-                  </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Collapsed State Summary */}
+            {!isControlPanelOpen && (
+              <div className="px-6 py-4 border-t border-border">
+                <div className="flex items-center justify-between text-sm text-text-secondary">
+                  <div className="flex items-center space-x-4">
+                    <span>Files: {files.length}</span>
+                    <span>Log Levels: {selectedLogLevels.length}/5</span>
+                    {dateTimeFilter.enabled && (
+                      <span className="text-primary-600">Date Filter Active</span>
+                    )}
+                  </div>
+                  <span className="text-xs">Click to expand</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Log Viewer - Full Width */}

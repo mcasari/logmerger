@@ -106,12 +106,10 @@ const PatternConfiguration = ({
   }, [sampleEntries, groupingPattern, groupingType, isPatternValid]);
 
   return (
-    <div className="bg-surface border border-border rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">Filtering Options</h3>
-      
+    <div className="space-y-6">
       {/* Log Level Filter - Always visible */}
       <div className="mb-6">
-        <div className="bg-surface border border-border rounded-lg">
+        <div className="bg-background border border-border rounded-lg">
           {/* Toggle Header */}
           <button
             onClick={() => setIsLogLevelFilterOpen(!isLogLevelFilterOpen)}
@@ -220,7 +218,7 @@ const PatternConfiguration = ({
 
       {/* Date/Time Filter - Always visible */}
       <div className="mb-6">
-        <div className="bg-surface border border-border rounded-lg">
+        <div className="bg-background border border-border rounded-lg">
           {/* Toggle Header */}
           <button
             onClick={onDateTimeFilterToggle}
@@ -263,6 +261,7 @@ const PatternConfiguration = ({
                       type="date"
                       value={dateTimeFilter.startDate || ''}
                       onChange={(e) => onDateTimeFilterChange('startDate', e.target.value)}
+                      max={dateTimeFilter.endDate || undefined}
                       className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
@@ -289,6 +288,7 @@ const PatternConfiguration = ({
                       type="date"
                       value={dateTimeFilter.endDate || ''}
                       onChange={(e) => onDateTimeFilterChange('endDate', e.target.value)}
+                      min={dateTimeFilter.startDate || undefined}
                       className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
@@ -325,15 +325,33 @@ const PatternConfiguration = ({
                         color="var(--color-primary)" 
                       />
                       <span className="text-sm font-medium text-primary-700">
-                        Filtering by date range
+                        Date/Time Filter Active
                       </span>
                     </div>
-                    <div className="mt-2 text-xs text-text-secondary">
+                    <div className="mt-2 text-xs text-text-secondary space-y-1">
                       {dateTimeFilter.startDate && (
-                        <div>From: {dateTimeFilter.startDate} {dateTimeFilter.startTime && `at ${dateTimeFilter.startTime}`}</div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-primary-600">From:</span>
+                          <span className="font-mono">{dateTimeFilter.startDate}</span>
+                          {dateTimeFilter.startTime && (
+                            <>
+                              <span className="text-primary-600">at</span>
+                              <span className="font-mono">{dateTimeFilter.startTime}</span>
+                            </>
+                          )}
+                        </div>
                       )}
                       {dateTimeFilter.endDate && (
-                        <div>To: {dateTimeFilter.endDate} {dateTimeFilter.endTime && `at ${dateTimeFilter.endTime}`}</div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-primary-600">To:</span>
+                          <span className="font-mono">{dateTimeFilter.endDate}</span>
+                          {dateTimeFilter.endTime && (
+                            <>
+                              <span className="text-primary-600">at</span>
+                              <span className="font-mono">{dateTimeFilter.endTime}</span>
+                            </>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
