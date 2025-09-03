@@ -22,6 +22,13 @@ const LogMerger = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedLogLevels, setSelectedLogLevels] = useState(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
+  const [dateTimeFilter, setDateTimeFilter] = useState({
+    enabled: false,
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: ''
+  });
   const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -379,6 +386,43 @@ const LogMerger = () => {
     });
   }, [logEntries, selectedLogLevels, extractLogLevel]);
 
+  // Filter entries by date/time range
+  const filteredByDateTime = useMemo(() => {
+    if (!dateTimeFilter.enabled) return filteredByLogLevel;
+    
+    const { startDate, startTime, endDate, endTime } = dateTimeFilter;
+    
+    if (!startDate && !endDate) return filteredByLogLevel;
+    
+    return filteredByLogLevel.filter(entry => {
+      if (!entry.timestamp) return false;
+      
+      const entryDate = new Date(entry.timestamp);
+      
+      // Start date/time filter
+      if (startDate && startTime) {
+        const startDateTime = new Date(`${startDate}T${startTime}`);
+        if (entryDate < startDateTime) return false;
+      } else if (startDate) {
+        const startDateOnly = new Date(startDate);
+        startDateOnly.setHours(0, 0, 0, 0);
+        if (entryDate < startDateOnly) return false;
+      }
+      
+      // End date/time filter
+      if (endDate && endTime) {
+        const endDateTime = new Date(`${endDate}T${endTime}`);
+        if (entryDate > endDateTime) return false;
+      } else if (endDate) {
+        const endDateOnly = new Date(endDate);
+        endDateOnly.setHours(23, 59, 59, 999);
+        if (entryDate > endDateOnly) return false;
+      }
+      
+      return true;
+    });
+  }, [filteredByLogLevel, dateTimeFilter]);
+
   // Calculate log level counts for the selector
   const logLevelCounts = useMemo(() => {
     const counts = {};
@@ -393,11 +437,11 @@ const LogMerger = () => {
 
   // Group log entries based on the selected pattern
   const groupedEntries = useMemo(() => {
-    if (filteredByLogLevel.length === 0) return [];
+    if (filteredByDateTime.length === 0) return [];
 
     const groups = new Map();
 
-    filteredByLogLevel.forEach(entry => {
+    filteredByDateTime.forEach(entry => {
       let groupKey = 'Other';
 
       try {
@@ -463,6 +507,31 @@ const LogMerger = () => {
     setSelectedLogLevels([]);
   }, []);
 
+  // Handle date/time filter changes
+  const handleDateTimeFilterChange = useCallback((field, value) => {
+    setDateTimeFilter(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleDateTimeFilterToggle = useCallback(() => {
+    setDateTimeFilter(prev => ({
+      ...prev,
+      enabled: !prev.enabled
+    }));
+  }, []);
+
+  const handleClearDateTimeFilter = useCallback(() => {
+    setDateTimeFilter({
+      enabled: false,
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: ''
+    });
+  }, []);
+
   // Handle group collapse/expand
   const handleGroupToggle = useCallback((groupId) => {
     setCollapsedGroups(prev => {
@@ -483,6 +552,13 @@ const LogMerger = () => {
     setCollapsedGroups(new Set());
     setSearchQuery('');
     setSelectedLogLevels(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
+    setDateTimeFilter({
+      enabled: false,
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: ''
+    });
     setEntriesWithoutTimestamp(0);
   }, []);
 
@@ -605,6 +681,10 @@ const LogMerger = () => {
                 onSelectAllLogLevels={handleSelectAllLogLevels}
                 onClearAllLogLevels={handleClearAllLogLevels}
                 logLevelCounts={logLevelCounts}
+                dateTimeFilter={dateTimeFilter}
+                onDateTimeFilterChange={handleDateTimeFilterChange}
+                onDateTimeFilterToggle={handleDateTimeFilterToggle}
+                onClearDateTimeFilter={handleClearDateTimeFilter}
               />
             </div>
 
