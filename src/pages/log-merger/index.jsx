@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import Header from '../../components/ui/Header';
 import FileUploadZone from './components/FileUploadZone';
 import PatternConfiguration from './components/PatternConfiguration';
 import LogViewer from './components/LogViewer';
@@ -16,11 +15,8 @@ const SCROLL_THRESHOLD = 0.8; // Load more when 80% scrolled
 const LogMerger = () => {
   const [files, setFiles] = useState([]);
   const [logEntries, setLogEntries] = useState([]);
-  const [groupingPattern, setGroupingPattern] = useState('');
-  const [groupingType, setGroupingType] = useState('hour'); // 'hour', 'custom'
   const [isProcessing, setIsProcessing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedLogLevels, setSelectedLogLevels] = useState(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
   const [dateTimeFilter, setDateTimeFilter] = useState({
     enabled: false,
@@ -30,7 +26,6 @@ const LogMerger = () => {
     endTime: ''
   });
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(true);
-  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processedFiles, setProcessedFiles] = useState(0);
@@ -469,58 +464,16 @@ const LogMerger = () => {
     return counts;
   }, [logEntries, extractLogLevel]);
 
-  // Group log entries based on the selected pattern
-  const groupedEntries = useMemo(() => {
-    if (filteredByDateTime.length === 0) return [];
-
-    const groups = new Map();
-
-    filteredByDateTime.forEach(entry => {
-      let groupKey = 'Other';
-
-      try {
-        if (groupingType === 'hour') {
-          const hour = new Date(entry.timestamp).getHours();
-          groupKey = `Hour ${hour.toString().padStart(2, '0')}:00`;
-        } else if (groupingType === 'custom' && groupingPattern) {
-          const regex = new RegExp(groupingPattern, 'i');
-          const match = entry.content.match(regex);
-          groupKey = match ? (match[1] || match[0]) : 'Other';
-        }
-      } catch (error) {
-        console.error('Pattern matching error:', error);
-        groupKey = 'Other';
-      }
-
-      if (!groups.has(groupKey)) {
-        groups.set(groupKey, {
-          id: groupKey.toLowerCase().replace(/\s+/g, '-'),
-          name: groupKey,
-          entries: [],
-          count: 0
-        });
-      }
-
-      groups.get(groupKey).entries.push(entry);
-      groups.get(groupKey).count++;
-    });
-
-    return Array.from(groups.values()).sort((a, b) => b.count - a.count);
-  }, [filteredByDateTime, groupingPattern, groupingType, extractLogLevel]);
-
   // Filter entries based on search query
-  const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return groupedEntries;
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) return filteredByDateTime;
 
     const query = searchQuery.toLowerCase();
-    return groupedEntries.map(group => ({
-      ...group,
-      entries: group.entries.filter(entry => 
-        entry.content.toLowerCase().includes(query) ||
-        entry.fileName.toLowerCase().includes(query)
-      )
-    })).filter(group => group.entries.length > 0);
-  }, [groupedEntries, searchQuery]);
+    return filteredByDateTime.filter(entry => 
+      entry.content.toLowerCase().includes(query) ||
+      entry.fileName.toLowerCase().includes(query)
+    );
+  }, [filteredByDateTime, searchQuery]);
 
   // Handle log level selection
   const handleLogLevelToggle = useCallback((level) => {
@@ -592,24 +545,10 @@ const LogMerger = () => {
     });
   }, []);
 
-  // Handle group collapse/expand
-  const handleGroupToggle = useCallback((groupId) => {
-    setCollapsedGroups(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(groupId)) {
-        newSet.delete(groupId);
-      } else {
-        newSet.add(groupId);
-      }
-      return newSet;
-    });
-  }, []);
-
   // Clear all data
   const handleClearAll = useCallback(() => {
     setFiles([]);
     setLogEntries([]);
-    setCollapsedGroups(new Set());
     setSearchQuery('');
     setSelectedLogLevels(['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE']);
     setDateTimeFilter({
@@ -624,18 +563,11 @@ const LogMerger = () => {
   }, []);
 
   const totalEntries = logEntries.length;
-  const filteredEntries = filteredGroups.reduce((total, group) => total + group.entries.length, 0);
-  
-  // Count entries that match the grouping pattern (excluding "Other" group)
-  const patternMatchedEntries = groupedEntries
-    .filter(group => group.name !== 'Other')
-    .reduce((total, group) => total + group.entries.length, 0);
+  const filteredEntriesCount = filteredEntries.length;
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      
-      <main className="pt-16">
+      <main>
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
           {/* Page Header */}
           <div className="mb-8">
@@ -663,7 +595,7 @@ const LogMerger = () => {
             
             {/* Stats */}
             {totalEntries > 0 && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-surface border border-border rounded-lg p-4">
                   <div className="flex items-center space-x-2">
                     <Icon name="Files" size={20} color="var(--color-primary)" />
@@ -688,28 +620,8 @@ const LogMerger = () => {
                   <div className="flex items-center space-x-2">
                     <Icon name="Filter" size={20} color="var(--color-success)" />
                     <div>
-                      <div className="text-2xl font-bold text-text-primary">{filteredEntries.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-text-primary">{filteredEntriesCount.toLocaleString()}</div>
                       <div className="text-sm text-text-secondary">Filtered Lines</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-surface border border-border rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    <Icon name="Layers" size={20} color="var(--color-warning)" />
-                    <div>
-                      <div className="text-2xl font-bold text-text-primary">{filteredGroups.length}</div>
-                      <div className="text-sm text-text-secondary">Groups</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-surface border border-border rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    <Icon name="Activity" size={20} color="var(--color-accent)" />
-                    <div>
-                      <div className="text-2xl font-bold text-text-primary">{selectedLogLevels.length}/5</div>
-                      <div className="text-sm text-text-secondary">Log Levels Active</div>
                     </div>
                   </div>
                 </div>
@@ -768,10 +680,6 @@ const LogMerger = () => {
                     <div className="bg-background border border-border rounded-lg p-4">
                       <h3 className="text-md font-semibold text-text-primary mb-4">Filtering Options</h3>
                       <PatternConfiguration
-                        groupingPattern={groupingPattern}
-                        groupingType={groupingType}
-                        onPatternChange={setGroupingPattern}
-                        onTypeChange={setGroupingType}
                         sampleEntries={logEntries.slice(0, 3)}
                         selectedLogLevels={selectedLogLevels}
                         onLogLevelToggle={handleLogLevelToggle}
@@ -846,15 +754,11 @@ const LogMerger = () => {
                           disabled={totalEntries === 0}
                           onClick={() => {
                             // Simple export functionality
-                            const exportData = filteredGroups.map(group => ({
-                              group: group.name,
-                              count: group.count,
-                              entries: group.entries.map(e => ({
-                                file: e.fileName,
-                                line: e.lineNumber,
-                                content: e.content,
-                                timestamp: e.timestamp
-                              }))
+                            const exportData = filteredEntries.map(entry => ({
+                              file: entry.fileName,
+                              line: entry.lineNumber,
+                              content: entry.content,
+                              timestamp: entry.timestamp
                             }));
                             
                             const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
@@ -899,11 +803,9 @@ const LogMerger = () => {
           {totalEntries > 0 && (
             <div className="mt-8">
               <LogViewer
-                groups={filteredGroups}
+                entries={filteredEntries}
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
-                collapsedGroups={collapsedGroups}
-                onGroupToggle={handleGroupToggle}
                 onScroll={handleScroll}
                 isLoadingMore={isLoadingMore}
               />

@@ -27,13 +27,6 @@ const WorkflowProgress = ({ className = '' }) => {
       icon: 'Activity',
       stage: 3
     },
-    {
-      id: 'analyze',
-      label: 'Analyze Results',
-      path: '/log-analysis-workspace',
-      icon: 'BarChart3',
-      stage: 4
-    }
   ];
 
   const currentStep = workflowSteps.find(step => step.path === location.pathname);

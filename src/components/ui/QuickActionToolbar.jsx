@@ -40,21 +40,6 @@ const QuickActionToolbar = ({ className = '' }) => {
         );
         break;
         
-      case '/log-analysis-workspace':
-        baseActions.push(
-          { id: 'export-results', label: 'Export Results', icon: 'Download', variant: 'primary', enabled: hasResults },
-          { id: 'filter-logs', label: 'Filter', icon: 'Filter', variant: 'ghost', enabled: hasResults },
-          { id: 'search-logs', label: 'Search', icon: 'Search', variant: 'ghost', enabled: hasResults }
-        );
-        break;
-        
-      case '/grouped-content-viewer':
-        baseActions.push(
-          { id: 'export-groups', label: 'Export Groups', icon: 'Download', variant: 'primary', enabled: hasResults },
-          { id: 'merge-groups', label: 'Merge Groups', icon: 'Merge', variant: 'secondary', enabled: hasResults },
-          { id: 'group-settings', label: 'Group Settings', icon: 'Settings', variant: 'ghost', enabled: true }
-        );
-        break;
         
       case '/file-processing-status':
         baseActions.push(

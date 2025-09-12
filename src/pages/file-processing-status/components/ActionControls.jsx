@@ -15,11 +15,7 @@ const ActionControls = ({
   const navigate = useNavigate();
 
   const handleViewResults = () => {
-    navigate('/log-analysis-workspace');
-  };
-
-  const handleViewGroups = () => {
-    navigate('/grouped-content-viewer');
+    navigate('/log-merger');
   };
 
   const handleBackToUpload = () => {
@@ -73,17 +69,6 @@ const ActionControls = ({
             </Button>
           )}
 
-          {hasResults && !isProcessing && (
-            <Button
-              variant="secondary"
-              iconName="Layers"
-              iconSize={16}
-              onClick={handleViewGroups}
-              className="flex-1"
-            >
-              View Groups
-            </Button>
-          )}
         </div>
 
         {/* Secondary Actions */}

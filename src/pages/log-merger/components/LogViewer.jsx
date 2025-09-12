@@ -4,16 +4,13 @@ import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 
 const LogViewer = ({ 
-  groups, 
+  entries, 
   searchQuery, 
   onSearchChange, 
-  collapsedGroups, 
-  onGroupToggle,
   onScroll,
   isLoadingMore
 }) => {
   const [currentRecordIndex, setCurrentRecordIndex] = useState(0);
-  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
   const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
   const [expandedEntries, setExpandedEntries] = useState(new Set());
@@ -23,7 +20,7 @@ const LogViewer = ({
 
   // Auto-scroll when current record changes
   useEffect(() => {
-    if (groups.length > 0 && !isNavigating) {
+    if (entries.length > 0 && !isNavigating) {
       // Clear any existing timeout
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -33,10 +30,10 @@ const LogViewer = ({
         const container = scrollContainerRef.current;
         if (!container) return;
         
-        console.log(`Looking for record: group ${currentGroupIndex}, record ${currentRecordIndex}`);
+        console.log(`Looking for record: ${currentRecordIndex}`);
         
         // Find the selected record element
-        const selectedElement = container.querySelector(`[data-record-id="${currentGroupIndex}-${currentRecordIndex}"]`);
+        const selectedElement = container.querySelector(`[data-record-id="${currentRecordIndex}"]`);
         
         if (selectedElement) {
           console.log('Found element, scrolling to center...');
@@ -47,7 +44,7 @@ const LogViewer = ({
           // Use scrollIntoView with instant behavior to reduce interference
           try {
             selectedElement.scrollIntoView({
-              behavior: 'instant', // Changed from 'smooth' to 'instant'
+              behavior: 'instant',
               block: 'center',
               inline: 'nearest'
             });
@@ -98,7 +95,7 @@ const LogViewer = ({
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [currentGroupIndex, currentRecordIndex, groups, collapsedGroups, isNavigating]);
+  }, [currentRecordIndex, entries, isNavigating]);
 
   const toggleEntryExpansion = (entryId) => {
     const newExpanded = new Set(expandedEntries);
@@ -110,13 +107,6 @@ const LogViewer = ({
     setExpandedEntries(newExpanded);
   };
 
-  const getGroupColor = (groupName) => {
-    if (groupName.includes('ERROR')) return '#ef4444';
-    if (groupName.includes('WARN')) return '#f59e0b';
-    if (groupName.includes('INFO')) return '#10b981';
-    if (groupName.includes('DEBUG')) return '#8b5cf6';
-    return '#6b7280';
-  };
 
   const highlightText = (text, query) => {
     if (!query.trim()) return text;
@@ -177,72 +167,24 @@ const LogViewer = ({
 
   // Navigation functions
   const navigateToPreviousRecord = () => {
-    if (groups.length === 0 || isNavigating) return;
+    if (entries.length === 0 || isNavigating) return;
     
     setIsNavigating(true);
-    
-    let newGroupIndex = currentGroupIndex;
-    let newRecordIndex = currentRecordIndex - 1;
-    
-    // If we're at the first record of the current group, go to previous group
-    if (newRecordIndex < 0) {
-      newGroupIndex = Math.max(0, currentGroupIndex - 1);
-      newRecordIndex = groups[newGroupIndex]?.entries.length - 1 || 0;
-    }
-    
-    // Ensure the target group is expanded first
-    const targetGroup = groups[newGroupIndex];
-    if (targetGroup && collapsedGroups.has(targetGroup.id)) {
-      console.log(`Expanding group ${targetGroup.id} before navigation`);
-      onGroupToggle(targetGroup.id);
-      // Wait a bit for the group to expand
-      setTimeout(() => {
-        setCurrentGroupIndex(newGroupIndex);
-        setCurrentRecordIndex(newRecordIndex);
-        setIsNavigating(false);
-      }, 200);
-    } else {
-      setCurrentGroupIndex(newGroupIndex);
-      setCurrentRecordIndex(newRecordIndex);
-      setIsNavigating(false);
-    }
+    setCurrentRecordIndex(Math.max(0, currentRecordIndex - 1));
+    setIsNavigating(false);
   };
 
   const navigateToNextRecord = () => {
-    if (groups.length === 0 || isNavigating) return;
+    if (entries.length === 0 || isNavigating) return;
     
     setIsNavigating(true);
-    
-    let newGroupIndex = currentGroupIndex;
-    let newRecordIndex = currentRecordIndex + 1;
-    
-    // If we're at the last record of the current group, go to next group
-    if (newRecordIndex >= groups[currentGroupIndex]?.entries.length) {
-      newGroupIndex = Math.min(groups.length - 1, currentGroupIndex + 1);
-      newRecordIndex = 0;
-    }
-    
-    // Ensure the target group is expanded first
-    const targetGroup = groups[newGroupIndex];
-    if (targetGroup && collapsedGroups.has(targetGroup.id)) {
-      console.log(`Expanding group ${targetGroup.id} before navigation`);
-      onGroupToggle(targetGroup.id);
-      // Wait a bit for the group to expand
-      setTimeout(() => {
-        setCurrentGroupIndex(newGroupIndex);
-        setCurrentRecordIndex(newRecordIndex);
-        setIsNavigating(false);
-      }, 200);
-    } else {
-      setCurrentGroupIndex(newGroupIndex);
-      setCurrentRecordIndex(newRecordIndex);
-      setIsNavigating(false);
-    }
+    setCurrentRecordIndex(Math.min(entries.length - 1, currentRecordIndex + 1));
+    setIsNavigating(false);
   };
 
   // Check if navigation buttons should be disabled
-  const isPreviousDisabled = groups.length === 0 || (currentGroupIndex === 0 && currentRecordIndex === 0);
-  const isNextDisabled = groups.length === 0 || (currentGroupIndex === groups.length - 1 && currentRecordIndex === groups[currentGroupIndex]?.entries.length - 1);
+  const isPreviousDisabled = entries.length === 0 || currentRecordIndex === 0;
+  const isNextDisabled = entries.length === 0 || currentRecordIndex === entries.length - 1;
 
   const getLogLevelColor = (content) => {
     // Try multiple patterns for log level detection
@@ -327,107 +269,22 @@ const LogViewer = ({
     return null;
   };
 
-  // Flatten all entries for continuous scrolling
-  const allEntries = useMemo(() => {
-    const entries = [];
-    groups.forEach((group) => {
-      if (!collapsedGroups.has(group.id)) {
-        // Add group header
-        entries.push({
-          type: 'group-header',
-          id: `group-${group.id}`,
-          group: group
-        });
-        
-        // Add all group entries
-        group.entries.forEach((entry) => {
-          entries.push({
-            type: 'entry',
-            id: entry.id,
-            entry: entry,
-            group: group
-          });
-        });
-      } else {
-        // Add collapsed group header only
-        entries.push({
-          type: 'group-header',
-          id: `group-${group.id}`,
-          group: group
-        });
-      }
-    });
-    return entries;
-  }, [groups, collapsedGroups]);
+  const totalVisibleEntries = entries.length;
 
-  const totalVisibleEntries = useMemo(() => {
-    return groups.reduce((total, group) => total + group.entries.length, 0);
-  }, [groups]);
-
-  // Render group header
-  const renderGroupHeader = (group, isCollapsed) => {
-    const groupColor = getGroupColor(group.name);
-    const isLogLevelGroup = ['ERROR', 'WARN', 'INFO', 'DEBUG', 'TRACE'].includes(group.name);
-    const logLevelBadgeClass = isLogLevelGroup ? getLogLevelColor(`[${group.name}]`) : null;
-    
-    return (
-      <button
-        key={`group-${group.id}`}
-        onClick={() => onGroupToggle(group.id)}
-        className="w-full px-6 py-4 text-left hover:bg-surface-hover transition-colors duration-150 bg-background border-b border-border"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Icon 
-              name={isCollapsed ? "ChevronRight" : "ChevronDown"} 
-              size={16} 
-              color="var(--color-text-secondary)" 
-            />
-            
-            <div 
-              className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: groupColor }}
-            />
-            
-            <div className="flex items-center space-x-2">
-              <h4 className="font-semibold text-text-primary">{group.name}</h4>
-              {isLogLevelGroup && logLevelBadgeClass && (
-                <div className={`px-2 py-1 rounded text-xs font-medium border ${logLevelBadgeClass}`}>
-                  {group.name}
-                </div>
-              )}
-            </div>
-            
-            <div>
-              <p className="text-sm text-text-secondary">
-                {group.entries.length} entries
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-text-muted">
-              {isCollapsed ? 'Show' : 'Hide'}
-            </span>
-          </div>
-        </div>
-      </button>
-    );
-  };
 
   // Render compact log entry
-  const renderCompactLogEntry = (entry, index, groupIndex) => {
+  const renderCompactLogEntry = (entry, index) => {
     const isEven = index % 2 === 0;
     const logLevel = extractLogLevel(entry.content);
     const logLevelColor = getLogLevelColor(entry.content);
     const logLevelBackground = getLogLevelBackgroundColor(entry.content);
-    const isCurrentRecord = groupIndex === currentGroupIndex && index === currentRecordIndex;
+    const isCurrentRecord = index === currentRecordIndex;
     const isExpanded = expandedEntries.has(entry.id);
     
     return (
       <div
         key={entry.id}
-        data-record-id={`${groupIndex}-${index}`}
+        data-record-id={`${index}`}
         className={`
           border-b border-border hover:bg-surface-hover transition-colors duration-150
           ${isCurrentRecord 
@@ -529,18 +386,18 @@ const LogViewer = ({
   };
 
   // Render detailed log entry (Original)
-  const renderDetailedLogEntry = (entry, index, groupIndex) => {
+  const renderDetailedLogEntry = (entry, index) => {
     const isEven = index % 2 === 0;
     const logLevel = extractLogLevel(entry.content);
     const logLevelColor = getLogLevelColor(entry.content);
     const logLevelBackground = getLogLevelBackgroundColor(entry.content);
-    const isCurrentRecord = groupIndex === currentGroupIndex && index === currentRecordIndex;
+    const isCurrentRecord = index === currentRecordIndex;
     const isExpanded = expandedEntries.has(entry.id);
     
     return (
       <div
         key={entry.id}
-        data-record-id={`${groupIndex}-${index}`}
+        data-record-id={`${index}`}
         className={`
           p-3 border-b border-border hover:bg-surface-hover transition-colors duration-150
           ${isCurrentRecord 
@@ -657,7 +514,7 @@ const LogViewer = ({
               Merged Log View
             </h3>
             <p className="text-sm text-text-secondary">
-              {totalVisibleEntries.toLocaleString()} entries across {groups.length} groups
+              {totalVisibleEntries.toLocaleString()} entries
               {isLoadingMore && (
                 <span className="ml-2 text-primary">
                   • Loading more...
@@ -723,29 +580,6 @@ const LogViewer = ({
               />
             </div>
             
-            {(
-              <Button
-                variant="outline"
-                size="sm"
-                iconName={groups.some(g => collapsedGroups.has(g.id)) ? "Expand" : "Minimize"}
-                iconSize={16}
-                onClick={() => {
-                  if (groups.some(g => collapsedGroups.has(g.id))) {
-                    // Expand all
-                    groups.forEach(g => {
-                      if (collapsedGroups.has(g.id)) {
-                        onGroupToggle(g.id);
-                      }
-                    });
-                  } else {
-                    // Collapse all
-                    groups.forEach(g => onGroupToggle(g.id));
-                  }
-                }}
-              >
-                {groups.some(g => collapsedGroups.has(g.id)) ? 'Expand All' : 'Collapse All'}
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -764,27 +598,13 @@ const LogViewer = ({
           }
         }}
       >
-        {groups.length > 0 ? (
+        {entries.length > 0 ? (
           <div>
-            {groups.map((group, groupIndex) => {
-              const isCollapsed = collapsedGroups.has(group.id);
-              
-              return (
-                <div key={group.id}>
-                  {renderGroupHeader(group, isCollapsed)}
-                  
-                  {!isCollapsed && (
-                    <div>
-                      {group.entries.map((entry, index) => 
-                        viewMode === 'compact' 
-                          ? renderCompactLogEntry(entry, index, groupIndex)
-                          : renderDetailedLogEntry(entry, index, groupIndex)
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {entries.map((entry, index) => 
+              viewMode === 'compact' 
+                ? renderCompactLogEntry(entry, index)
+                : renderDetailedLogEntry(entry, index)
+            )}
             
             {/* Loading More Indicator */}
             {isLoadingMore && (
@@ -816,10 +636,10 @@ const LogViewer = ({
             <div className="text-center">
               <Icon name="Search" size={48} color="var(--color-text-muted)" className="mx-auto mb-4" />
               <h4 className="text-lg font-medium text-text-primary mb-2">
-                No groups found
+                No entries found
               </h4>
               <p className="text-text-secondary">
-                Upload and process log files to see grouped content here
+                Upload and process log files to see content here
               </p>
             </div>
           </div>
