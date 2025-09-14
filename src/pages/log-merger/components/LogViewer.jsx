@@ -14,13 +14,14 @@ const LogViewer = ({
   const [isNavigating, setIsNavigating] = useState(false);
   const [viewMode, setViewMode] = useState('compact'); // 'compact' or 'detailed'
   const [expandedEntries, setExpandedEntries] = useState(new Set());
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(false);
   const scrollContainerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const retryCountRef = useRef(0);
 
-  // Auto-scroll when current record changes
+  // Auto-scroll when current record changes (only when explicitly navigating)
   useEffect(() => {
-    if (entries.length > 0 && !isNavigating) {
+    if (entries.length > 0 && !isNavigating && shouldAutoScroll) {
       // Clear any existing timeout
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
@@ -95,7 +96,7 @@ const LogViewer = ({
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [currentRecordIndex, entries, isNavigating]);
+  }, [currentRecordIndex, entries, isNavigating, shouldAutoScroll]);
 
   const toggleEntryExpansion = (entryId) => {
     const newExpanded = new Set(expandedEntries);
@@ -170,6 +171,7 @@ const LogViewer = ({
     if (entries.length === 0 || isNavigating) return;
     
     setIsNavigating(true);
+    setShouldAutoScroll(true);
     setCurrentRecordIndex(Math.max(0, currentRecordIndex - 1));
     setIsNavigating(false);
   };
@@ -178,6 +180,7 @@ const LogViewer = ({
     if (entries.length === 0 || isNavigating) return;
     
     setIsNavigating(true);
+    setShouldAutoScroll(true);
     setCurrentRecordIndex(Math.min(entries.length - 1, currentRecordIndex + 1));
     setIsNavigating(false);
   };
@@ -270,6 +273,11 @@ const LogViewer = ({
   };
 
   const totalVisibleEntries = entries.length;
+
+  // Handle manual scrolling to disable auto-scroll
+  const handleManualScroll = useCallback(() => {
+    setShouldAutoScroll(false);
+  }, []);
 
 
   // Render compact log entry
@@ -591,6 +599,9 @@ const LogViewer = ({
         onScroll={(e) => {
           const { scrollTop, scrollHeight, clientHeight } = e.target;
           const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
+          
+          // Disable auto-scroll when user manually scrolls
+          handleManualScroll();
           
           // Call onScroll when user scrolls to 80% of content
           if (scrollPercentage > 0.8 && onScroll) {
