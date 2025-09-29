@@ -35,12 +35,22 @@ const LogMerger = () => {
   const [loadedChunks, setLoadedChunks] = useState(0);
   const abortControllerRef = useRef(null);
 
-  // Auto-open control panel when there are files or when processing
+  // Calculate total entries early so it can be used in useEffect
+  const totalEntries = logEntries.length;
+
+  // Auto-open control panel when there are files or when processing, but collapse when entries are displayed
   useEffect(() => {
     if (files.length > 0 || isProcessing) {
       setIsControlPanelOpen(true);
     }
   }, [files.length, isProcessing]);
+
+  // Auto-collapse control panel when rows are displayed
+  useEffect(() => {
+    if (totalEntries > 0) {
+      setIsControlPanelOpen(false);
+    }
+  }, [totalEntries]);
 
   // Handle file selection
   const handleFilesSelected = useCallback((selectedFiles) => {
@@ -562,7 +572,6 @@ const LogMerger = () => {
     setEntriesWithoutTimestamp(0);
   }, []);
 
-  const totalEntries = logEntries.length;
   const filteredEntriesCount = filteredEntries.length;
 
   return (
