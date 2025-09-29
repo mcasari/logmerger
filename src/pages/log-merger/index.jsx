@@ -38,12 +38,12 @@ const LogMerger = () => {
   // Calculate total entries early so it can be used in useEffect
   const totalEntries = logEntries.length;
 
-  // Auto-open control panel when there are files or when processing, but collapse when entries are displayed
+  // Auto-open control panel when processing starts, but collapse when entries are displayed
   useEffect(() => {
-    if (files.length > 0 || isProcessing) {
+    if (isProcessing) {
       setIsControlPanelOpen(true);
     }
-  }, [files.length, isProcessing]);
+  }, [isProcessing]);
 
   // Auto-collapse control panel when rows are displayed
   useEffect(() => {
