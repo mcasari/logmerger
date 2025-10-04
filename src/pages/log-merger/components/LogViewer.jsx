@@ -18,6 +18,7 @@ const LogViewer = ({
   const scrollContainerRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
   const retryCountRef = useRef(0);
+  const scrollThrottleRef = useRef(null);
 
   // Auto-scroll when current record changes (only when explicitly navigating)
   useEffect(() => {
@@ -97,6 +98,22 @@ const LogViewer = ({
       }
     };
   }, [currentRecordIndex, entries, isNavigating, shouldAutoScroll]);
+
+  // Cleanup throttle timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (scrollThrottleRef.current) {
+        clearTimeout(scrollThrottleRef.current);
+      }
+    };
+  }, []);
+
+  // Reset current record index when entries change
+  useEffect(() => {
+    if (entries.length > 0 && currentRecordIndex >= entries.length) {
+      setCurrentRecordIndex(0);
+    }
+  }, [entries.length, currentRecordIndex]);
 
   const toggleEntryExpansion = (entryId) => {
     const newExpanded = new Set(expandedEntries);
@@ -274,10 +291,47 @@ const LogViewer = ({
 
   const totalVisibleEntries = entries.length;
 
-  // Handle manual scrolling to disable auto-scroll
+  // Handle manual scrolling to disable auto-scroll and update selected row
   const handleManualScroll = useCallback(() => {
     setShouldAutoScroll(false);
-  }, []);
+    
+    // Throttle the row selection update to avoid performance issues
+    if (scrollThrottleRef.current) {
+      clearTimeout(scrollThrottleRef.current);
+    }
+    
+    scrollThrottleRef.current = setTimeout(() => {
+      // Find which row is currently most visible in the viewport
+      const container = scrollContainerRef.current;
+      if (!container || entries.length === 0) return;
+      
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.top + containerRect.height / 2;
+      
+      let closestIndex = 0;
+      let closestDistance = Infinity;
+      
+      // Check each visible row to find the one closest to the center
+      entries.forEach((entry, index) => {
+        const element = container.querySelector(`[data-record-id="${index}"]`);
+        if (element) {
+          const elementRect = element.getBoundingClientRect();
+          const elementCenter = elementRect.top + elementRect.height / 2;
+          const distance = Math.abs(elementCenter - containerCenter);
+          
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closestIndex = index;
+          }
+        }
+      });
+      
+      // Update the current record index if it's different
+      if (closestIndex !== currentRecordIndex) {
+        setCurrentRecordIndex(closestIndex);
+      }
+    }, 50); // Throttle to 50ms for smooth performance
+  }, [entries, currentRecordIndex]);
 
 
   // Render compact log entry
@@ -600,7 +654,7 @@ const LogViewer = ({
           const { scrollTop, scrollHeight, clientHeight } = e.target;
           const scrollPercentage = scrollTop / (scrollHeight - clientHeight);
           
-          // Disable auto-scroll when user manually scrolls
+          // Update selected row based on scroll position and disable auto-scroll
           handleManualScroll();
           
           // Call onScroll when user scrolls to 80% of content
