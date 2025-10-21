@@ -13,7 +13,11 @@ const PatternConfiguration = ({
   dateTimeFilter = {},
   onDateTimeFilterChange,
   onDateTimeFilterToggle,
-  onClearDateTimeFilter
+  onClearDateTimeFilter,
+  regexFilter = {},
+  onRegexFilterChange,
+  onRegexFilterToggle,
+  onClearRegexFilter
 }) => {
   const [isLogLevelFilterOpen, setIsLogLevelFilterOpen] = useState(false);
 
@@ -275,8 +279,143 @@ const PatternConfiguration = ({
         </div>
       </div>
 
+      {/* Regex Filter - Always visible */}
+      <div className="mb-6">
+        <div className="bg-background border border-border rounded-lg">
+          {/* Toggle Header */}
+          <button
+            onClick={onRegexFilterToggle}
+            className="w-full p-4 text-left flex items-center justify-between hover:bg-surface-hover transition-colors duration-150"
+          >
+            <div className="flex items-center space-x-2">
+              <Icon 
+                name="Search" 
+                size={16} 
+                color="var(--color-primary)" 
+              />
+              <span className="text-sm font-medium text-text-primary">
+                Regex Filter
+              </span>
+              {regexFilter.enabled && (
+                <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
+                  Active
+                </span>
+              )}
+            </div>
+            <Icon 
+              name={regexFilter.enabled ? "ChevronUp" : "ChevronDown"} 
+              size={16} 
+              color="var(--color-text-secondary)" 
+              className="transition-transform duration-150"
+            />
+          </button>
 
+          {/* Collapsible Content */}
+          {regexFilter.enabled && (
+            <div className="px-4 pb-4 border-t border-border">
+              <div className="pt-4 space-y-4">
+                {/* Regex Pattern Input */}
+                <div>
+                  <label className="block text-xs font-medium text-text-secondary mb-1">
+                    Regular Expression Pattern
+                  </label>
+                  <input
+                    type="text"
+                    value={regexFilter.pattern || ''}
+                    onChange={(e) => onRegexFilterChange('pattern', e.target.value)}
+                    placeholder="Enter regex pattern (e.g., error|warning|fail)"
+                    className={`w-full px-3 py-2 text-sm border rounded-md bg-background text-text-primary focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                      regexFilter.pattern && !regexFilter.isValid 
+                        ? 'border-error-500 focus:ring-error-500' 
+                        : 'border-border'
+                    }`}
+                  />
+                  {regexFilter.pattern && !regexFilter.isValid && (
+                    <div className="mt-1 text-xs text-error-600">
+                      {regexFilter.error}
+                    </div>
+                  )}
+                  {regexFilter.pattern && regexFilter.isValid && (
+                    <div className="mt-1 text-xs text-success-600">
+                      ✓ Valid regex pattern
+                    </div>
+                  )}
+                </div>
 
+                {/* Case Sensitive Toggle */}
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    id="caseSensitive"
+                    checked={regexFilter.caseSensitive || false}
+                    onChange={(e) => onRegexFilterChange('caseSensitive', e.target.checked)}
+                    className="rounded border-border text-primary-600 focus:ring-primary-500 focus:ring-2 focus:ring-offset-0"
+                  />
+                  <label htmlFor="caseSensitive" className="text-sm text-text-primary cursor-pointer">
+                    Case sensitive
+                  </label>
+                </div>
+
+                {/* Clear Filter Button */}
+                <div className="flex justify-end">
+                  <button
+                    onClick={onClearRegexFilter}
+                    className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
+                  >
+                    Clear Filter
+                  </button>
+                </div>
+
+                {/* Filter Status */}
+                {regexFilter.pattern && regexFilter.isValid && (
+                  <div className="p-3 rounded-lg bg-background border border-border">
+                    <div className="flex items-center space-x-2">
+                      <Icon 
+                        name="Search" 
+                        size={16} 
+                        color="var(--color-primary)" 
+                      />
+                      <span className="text-sm font-medium text-primary-700">
+                        Regex Filter Active
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs text-text-secondary space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-primary-600">Pattern:</span>
+                        <span className="font-mono bg-surface px-2 py-1 rounded">{regexFilter.pattern}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-primary-600">Case sensitive:</span>
+                        <span className="font-mono">{regexFilter.caseSensitive ? 'Yes' : 'No'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Regex Help */}
+                <div className="p-3 rounded-lg bg-background border border-border">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Icon 
+                      name="HelpCircle" 
+                      size={16} 
+                      color="var(--color-text-secondary)" 
+                    />
+                    <span className="text-sm font-medium text-text-primary">
+                      Regex Examples
+                    </span>
+                  </div>
+                  <div className="text-xs text-text-secondary space-y-1">
+                    <div><code className="bg-surface px-1 py-0.5 rounded">error|warning</code> - Match "error" or "warning"</div>
+                    <div><code className="bg-surface px-1 py-0.5 rounded">^ERROR</code> - Match lines starting with "ERROR"</div>
+                    <div><code className="bg-surface px-1 py-0.5 rounded">\d{4}-\d{2}-\d{2}</code> - Match date pattern YYYY-MM-DD</div>
+                    <div><code className="bg-surface px-1 py-0.5 rounded">.*exception.*</code> - Match lines containing "exception"</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
     </div>
   );

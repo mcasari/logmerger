@@ -25,6 +25,13 @@ const LogMerger = () => {
     endDate: '',
     endTime: ''
   });
+  const [regexFilter, setRegexFilter] = useState({
+    enabled: false,
+    pattern: '',
+    caseSensitive: false,
+    isValid: true,
+    error: ''
+  });
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(true);
   const [entriesWithoutTimestamp, setEntriesWithoutTimestamp] = useState(0);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -462,6 +469,23 @@ const LogMerger = () => {
     });
   }, [filteredByLogLevel, dateTimeFilter]);
 
+  // Filter entries by regex pattern
+  const filteredByRegex = useMemo(() => {
+    if (!regexFilter.enabled || !regexFilter.pattern.trim()) return filteredByDateTime;
+    
+    try {
+      const flags = regexFilter.caseSensitive ? 'g' : 'gi';
+      const regex = new RegExp(regexFilter.pattern, flags);
+      
+      return filteredByDateTime.filter(entry => {
+        return regex.test(entry.content);
+      });
+    } catch (error) {
+      // If regex is invalid, return all entries
+      return filteredByDateTime;
+    }
+  }, [filteredByDateTime, regexFilter]);
+
   // Calculate log level counts for the selector
   const logLevelCounts = useMemo(() => {
     const counts = {};
@@ -476,14 +500,14 @@ const LogMerger = () => {
 
   // Filter entries based on search query
   const filteredEntries = useMemo(() => {
-    if (!searchQuery.trim()) return filteredByDateTime;
+    if (!searchQuery.trim()) return filteredByRegex;
 
     const query = searchQuery.toLowerCase();
-    return filteredByDateTime.filter(entry => 
+    return filteredByRegex.filter(entry => 
       entry.content.toLowerCase().includes(query) ||
       entry.fileName.toLowerCase().includes(query)
     );
-  }, [filteredByDateTime, searchQuery]);
+  }, [filteredByRegex, searchQuery]);
 
   // Handle log level selection
   const handleLogLevelToggle = useCallback((level) => {
@@ -555,6 +579,50 @@ const LogMerger = () => {
     });
   }, []);
 
+  // Handle regex filter changes
+  const handleRegexFilterChange = useCallback((field, value) => {
+    setRegexFilter(prev => {
+      const newFilter = { ...prev, [field]: value };
+      
+      // Validate regex pattern if it's being changed
+      if (field === 'pattern') {
+        if (value.trim()) {
+          try {
+            const flags = newFilter.caseSensitive ? 'g' : 'gi';
+            new RegExp(value, flags);
+            newFilter.isValid = true;
+            newFilter.error = '';
+          } catch (error) {
+            newFilter.isValid = false;
+            newFilter.error = 'Invalid regular expression';
+          }
+        } else {
+          newFilter.isValid = true;
+          newFilter.error = '';
+        }
+      }
+      
+      return newFilter;
+    });
+  }, []);
+
+  const handleRegexFilterToggle = useCallback(() => {
+    setRegexFilter(prev => ({
+      ...prev,
+      enabled: !prev.enabled
+    }));
+  }, []);
+
+  const handleClearRegexFilter = useCallback(() => {
+    setRegexFilter({
+      enabled: false,
+      pattern: '',
+      caseSensitive: false,
+      isValid: true,
+      error: ''
+    });
+  }, []);
+
   // Clear all data
   const handleClearAll = useCallback(() => {
     setFiles([]);
@@ -567,6 +635,13 @@ const LogMerger = () => {
       startTime: '',
       endDate: '',
       endTime: ''
+    });
+    setRegexFilter({
+      enabled: false,
+      pattern: '',
+      caseSensitive: false,
+      isValid: true,
+      error: ''
     });
     setIsControlPanelOpen(true);
     setEntriesWithoutTimestamp(0);
@@ -699,6 +774,10 @@ const LogMerger = () => {
                         onDateTimeFilterChange={handleDateTimeFilterChange}
                         onDateTimeFilterToggle={handleDateTimeFilterToggle}
                         onClearDateTimeFilter={handleClearDateTimeFilter}
+                        regexFilter={regexFilter}
+                        onRegexFilterChange={handleRegexFilterChange}
+                        onRegexFilterToggle={handleRegexFilterToggle}
+                        onClearRegexFilter={handleClearRegexFilter}
                       />
                     </div>
                   </div>
@@ -800,6 +879,9 @@ const LogMerger = () => {
                     <span>Log Levels: {selectedLogLevels.length}/5</span>
                     {dateTimeFilter.enabled && (
                       <span className="text-primary-600">Date Filter Active</span>
+                    )}
+                    {regexFilter.enabled && (
+                      <span className="text-primary-600">Regex Filter Active</span>
                     )}
                   </div>
                   <span className="text-xs">Click to expand</span>
