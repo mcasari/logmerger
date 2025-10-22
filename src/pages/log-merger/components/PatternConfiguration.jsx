@@ -249,31 +249,6 @@ const PatternConfiguration = ({
                   Clear All
                 </button>
               </div>
-              
-              {selectedLogLevels.length > 0 && (
-                <div className="mt-4 p-3 rounded-lg bg-background border border-border">
-                  <div className="flex items-center space-x-2">
-                    <Icon 
-                      name="Filter" 
-                      size={16} 
-                      color="var(--color-primary)" 
-                    />
-                    <span className="text-sm font-medium text-primary-700">
-                      Showing {selectedLogLevels.length} of 5 log levels
-                    </span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {selectedLogLevels.map(level => (
-                      <span 
-                        key={level}
-                        className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-xs font-medium"
-                      >
-                        {level}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>
