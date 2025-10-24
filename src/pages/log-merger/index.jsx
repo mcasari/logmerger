@@ -747,46 +747,50 @@ const LogMerger = () => {
                 <div className="pt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Left Column - File Upload */}
                   <div className="space-y-6">
-                    <div className="bg-background border border-border rounded-lg p-4">
+                    <div className="bg-background border border-border rounded-lg p-4 h-full flex flex-col">
                       <h3 className="text-md font-semibold text-text-primary mb-4">Upload Log Files</h3>
-                      <FileUploadZone
-                        files={files}
-                        onFilesSelected={handleFilesSelected}
-                        onRemoveFile={handleRemoveFile}
-                        onProcessFiles={handleProcessFiles}
-                        isProcessing={isProcessing}
-                      />
+                      <div className="flex-grow">
+                        <FileUploadZone
+                          files={files}
+                          onFilesSelected={handleFilesSelected}
+                          onRemoveFile={handleRemoveFile}
+                          onProcessFiles={handleProcessFiles}
+                          isProcessing={isProcessing}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Middle Column - Pattern Configuration */}
                   <div className="space-y-6">
-                    <div className="bg-background border border-border rounded-lg p-4">
+                    <div className="bg-background border border-border rounded-lg p-4 h-full flex flex-col">
                       <h3 className="text-md font-semibold text-text-primary mb-4">Filtering Options</h3>
-                      <PatternConfiguration
-                        sampleEntries={logEntries.slice(0, 3)}
-                        selectedLogLevels={selectedLogLevels}
-                        onLogLevelToggle={handleLogLevelToggle}
-                        onSelectAllLogLevels={handleSelectAllLogLevels}
-                        onClearAllLogLevels={handleClearAllLogLevels}
-                        logLevelCounts={logLevelCounts}
-                        dateTimeFilter={dateTimeFilter}
-                        onDateTimeFilterChange={handleDateTimeFilterChange}
-                        onDateTimeFilterToggle={handleDateTimeFilterToggle}
-                        onClearDateTimeFilter={handleClearDateTimeFilter}
-                        regexFilter={regexFilter}
-                        onRegexFilterChange={handleRegexFilterChange}
-                        onRegexFilterToggle={handleRegexFilterToggle}
-                        onClearRegexFilter={handleClearRegexFilter}
-                      />
+                      <div className="flex-grow">
+                        <PatternConfiguration
+                          sampleEntries={logEntries.slice(0, 3)}
+                          selectedLogLevels={selectedLogLevels}
+                          onLogLevelToggle={handleLogLevelToggle}
+                          onSelectAllLogLevels={handleSelectAllLogLevels}
+                          onClearAllLogLevels={handleClearAllLogLevels}
+                          logLevelCounts={logLevelCounts}
+                          dateTimeFilter={dateTimeFilter}
+                          onDateTimeFilterChange={handleDateTimeFilterChange}
+                          onDateTimeFilterToggle={handleDateTimeFilterToggle}
+                          onClearDateTimeFilter={handleClearDateTimeFilter}
+                          regexFilter={regexFilter}
+                          onRegexFilterChange={handleRegexFilterChange}
+                          onRegexFilterToggle={handleRegexFilterToggle}
+                          onClearRegexFilter={handleClearRegexFilter}
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Right Column - Actions */}
                   <div className="space-y-6">
-                    <div className="bg-background border border-border rounded-lg p-4">
+                    <div className="bg-background border border-border rounded-lg p-4 h-full flex flex-col">
                       <h3 className="text-md font-semibold text-text-primary mb-4">Actions</h3>
-                      <div className="space-y-3">
+                      <div className="flex-grow flex flex-col space-y-3">
                         <Button
                           variant={files.length > 0 && !isProcessing ? "primary" : "secondary"}
                           disabled={files.length === 0 || isProcessing}
