@@ -729,9 +729,6 @@ const LogMerger = () => {
                 <span className="text-lg font-semibold text-text-primary">
                   Control Panel
                 </span>
-                <span className="px-2 py-1 bg-primary-100 text-primary-700 rounded text-sm font-medium">
-                  {files.length > 0 ? `${files.length} Files` : 'Upload'} • Filter • Actions
-                </span>
               </div>
               <Icon 
                 name={isControlPanelOpen ? "ChevronUp" : "ChevronDown"} 
