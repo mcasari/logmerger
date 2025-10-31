@@ -230,3 +230,5 @@ src/pages/log-merger/
 **Start analyzing your logs today!** 🎉
 
 Upload your log files, configure your patterns, and discover insights in your data with powerful pagination, search capabilities, and intelligent log level color coding.
+
+
