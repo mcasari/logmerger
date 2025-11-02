@@ -348,8 +348,12 @@ const LogMerger = () => {
         setLoadedChunks(newLoadedChunks);
         
         // Check if we have more chunks to load
-        const maxChunks = Math.max(...Array.from(fileChunks.values()).map(chunks => chunks.length));
-        setHasMoreData(newLoadedChunks < maxChunks);
+        const maxChunks = Array.from(fileChunks.values()).map(chunks => chunks.length);
+        const actualMaxChunks = maxChunks.length > 0 ? Math.max(...maxChunks) : 0;
+        setHasMoreData(newLoadedChunks < actualMaxChunks);
+      } else {
+        // No more chunks available
+        setHasMoreData(false);
       }
     } catch (error) {
       console.error('Error loading next chunk:', error);
@@ -508,6 +512,47 @@ const LogMerger = () => {
       entry.fileName.toLowerCase().includes(query)
     );
   }, [filteredByRegex, searchQuery]);
+
+  // Check if any filter is active
+  const hasActiveFilter = useMemo(() => {
+    return (
+      (selectedLogLevels.length > 0 && selectedLogLevels.length < 5) ||
+      dateTimeFilter.enabled ||
+      (regexFilter.enabled && regexFilter.pattern.trim() && regexFilter.isValid) ||
+      searchQuery.trim().length > 0
+    );
+  }, [selectedLogLevels, dateTimeFilter.enabled, regexFilter.enabled, regexFilter.pattern, regexFilter.isValid, searchQuery]);
+
+  // Auto-load more chunks when filters are active but no matches found
+  useEffect(() => {
+    // Only auto-load if:
+    // 1. Processing is complete
+    // 2. Filters are active
+    // 3. No matches found
+    // 4. More data is available
+    // 5. Not already loading
+    if (
+      !isProcessing &&
+      hasActiveFilter &&
+      filteredEntries.length === 0 &&
+      hasMoreData &&
+      !isLoadingMore
+    ) {
+      // Load next chunk automatically
+      const timer = setTimeout(() => {
+        loadNextChunk();
+      }, 100); // Small delay to avoid race conditions
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    isProcessing,
+    hasActiveFilter,
+    filteredEntries.length,
+    hasMoreData,
+    isLoadingMore,
+    loadNextChunk
+  ]);
 
   // Handle log level selection
   const handleLogLevelToggle = useCallback((level) => {
