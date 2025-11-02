@@ -661,7 +661,7 @@ const LogMerger = () => {
                   Log Analysis
                 </h1>
                 <p className="text-text-secondary">
-                  Upload, merge, and view log files with automatic grouping and chronological sorting
+                  Upload, merge, and view log files with chronological sorting and filtering
                 </p>
               </div>
               
