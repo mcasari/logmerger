@@ -367,25 +367,6 @@ const PatternConfiguration = ({
                   </div>
                 )}
 
-                {/* Regex Help */}
-                <div className="p-3 rounded-lg bg-background border border-border">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Icon 
-                      name="HelpCircle" 
-                      size={16} 
-                      color="var(--color-text-secondary)" 
-                    />
-                    <span className="text-sm font-medium text-text-primary">
-                      Regex Examples
-                    </span>
-                  </div>
-                  <div className="text-xs text-text-secondary space-y-1">
-                    <div><code className="bg-surface px-1 py-0.5 rounded">error|warning</code> - Match "error" or "warning"</div>
-                    <div><code className="bg-surface px-1 py-0.5 rounded">^ERROR</code> - Match lines starting with "ERROR"</div>
-                    <div><code className="bg-surface px-1 py-0.5 rounded">\d{4}-\d{2}-\d{2}</code> - Match date pattern YYYY-MM-DD</div>
-                    <div><code className="bg-surface px-1 py-0.5 rounded">.*exception.*</code> - Match lines containing "exception"</div>
-                  </div>
-                </div>
               </div>
             </div>
           )}
