@@ -119,7 +119,7 @@ const FileUploadZone = ({
               {isDragOver ? 'Drop files here' : 'Drop log files or click to browse'}
             </p>
             <p className="text-sm text-text-secondary">
-              Supports .log and .txt files (max 100MB each)
+              Supports .log and .txt files
             </p>
           </div>
         </div>
