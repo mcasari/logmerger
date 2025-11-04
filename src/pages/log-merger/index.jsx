@@ -924,10 +924,10 @@ const LogMerger = () => {
                     <span>Files: {files.length}</span>
                     <span>Log Levels: {selectedLogLevels.length}/5</span>
                     {dateTimeFilter.enabled && (
-                      <span className="text-primary-600">Date Filter Active</span>
+                      <span className="text-primary-600">Date Active</span>
                     )}
                     {regexFilter.enabled && (
-                      <span className="text-primary-600">Regex Filter Active</span>
+                      <span className="text-primary-600">Regex Active</span>
                     )}
                   </div>
                   <span className="text-xs">Click to expand</span>

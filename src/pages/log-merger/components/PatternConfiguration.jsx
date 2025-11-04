@@ -39,7 +39,7 @@ const PatternConfiguration = ({
                 color="var(--color-primary)" 
               />
               <span className="text-sm font-medium text-text-primary">
-                Date/Time Filter
+                Date/Time
               </span>
               {dateTimeFilter.enabled && (
                 <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
@@ -119,7 +119,7 @@ const PatternConfiguration = ({
                     onClick={onClearDateTimeFilter}
                     className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
                   >
-                    Clear Filter
+                    Clear
                   </button>
                 </div>
 
@@ -133,7 +133,7 @@ const PatternConfiguration = ({
                         color="var(--color-primary)" 
                       />
                       <span className="text-sm font-medium text-primary-700">
-                        Date/Time Filter Active
+                        Date/Time Active
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-text-secondary space-y-1">
@@ -185,7 +185,7 @@ const PatternConfiguration = ({
                 color="var(--color-primary)" 
               />
               <span className="text-sm font-medium text-text-primary">
-                Log Level Filter
+                Log Level
               </span>
               {selectedLogLevels.length > 0 && (
                 <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
@@ -269,7 +269,7 @@ const PatternConfiguration = ({
                 color="var(--color-primary)" 
               />
               <span className="text-sm font-medium text-text-primary">
-                Regex Filter
+                Regex
               </span>
               {regexFilter.enabled && (
                 <span className="px-2 py-0.5 bg-primary-100 text-primary-700 rounded text-xs font-medium">
@@ -337,7 +337,7 @@ const PatternConfiguration = ({
                     onClick={onClearRegexFilter}
                     className="px-3 py-1.5 text-xs font-medium rounded transition-colors bg-surface text-text-secondary hover:text-text-primary border border-border"
                   >
-                    Clear Filter
+                    Clear
                   </button>
                 </div>
 
@@ -351,7 +351,7 @@ const PatternConfiguration = ({
                         color="var(--color-primary)" 
                       />
                       <span className="text-sm font-medium text-primary-700">
-                        Regex Filter Active
+                        Regex Active
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-text-secondary space-y-1">
