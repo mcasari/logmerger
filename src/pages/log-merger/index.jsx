@@ -702,7 +702,7 @@ const LogMerger = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-xl font-bold text-text-primary">
+                <h1 className="text-2xl font-bold text-text-primary">
                   Log Analysis
                 </h1>
                 <p className="text-text-secondary">
