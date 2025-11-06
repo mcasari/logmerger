@@ -680,21 +680,6 @@ const LogViewer = ({
                 </div>
               </div>
             )}
-            
-            {/* Load More Button */}
-            {!isLoadingMore && onScroll && (
-              <div className="flex items-center justify-center py-4 border-t border-border">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onScroll({ scrollOffset: 0, scrollUpdateWasRequested: true })}
-                  className="flex items-center space-x-2"
-                >
-                  <Icon name="Download" size={16} />
-                  <span>Load More Entries</span>
-                </Button>
-              </div>
-            )}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
