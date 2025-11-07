@@ -75,8 +75,6 @@ const FileUploadZone = ({
 
   return (
     <div className={`bg-surface border border-border rounded-lg p-6 ${className}`}>
-      <h3 className="text-lg font-semibold text-text-primary mb-4">Upload Log Files</h3>
-      
       {/* Upload Zone */}
       <div
         className={`
