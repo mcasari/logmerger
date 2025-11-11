@@ -113,7 +113,7 @@ const FileUploadZone = ({
           </div>
           
           <div>
-            <p className="text-text-primary font-medium">
+            <p className="text-sm text-text-primary font-medium">
               {isDragOver ? 'Drop files here' : 'Drop log files or click to browse'}
             </p>
             <p className="text-sm text-text-secondary">
