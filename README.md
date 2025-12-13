@@ -5,6 +5,7 @@ A powerful web application for efficient log file analysis with pattern-based gr
 
 
 
+
 ## 🚀 Key Features
 
 - **Multi-File Upload**: Upload one or more log files at once with drag-and-drop support
