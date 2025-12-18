@@ -4,6 +4,8 @@ This document outlines the performance improvements implemented to address slow 
 
 ## 🚀 Key Optimizations Implemented
 
+
+
 ### 1. Reduced Chunk Sizes
 - **File Reading**: Reduced from 1MB to 512KB chunks for faster initial response
 - **Display Chunks**: Reduced from 1,000 to 500 lines per chunk
