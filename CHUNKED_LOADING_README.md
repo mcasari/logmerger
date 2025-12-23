@@ -4,6 +4,7 @@ This project now supports efficient handling of large log files through chunked 
 
 ## Features
 
+
 ### 🚀 Chunked File Loading
 - **Memory Efficient**: Files are loaded in chunks of 1,000 lines each
 - **Lazy Loading**: New chunks are loaded only when the user scrolls near the bottom
